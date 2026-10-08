@@ -1,0 +1,32 @@
+# Render Blueprint Specification
+# Deploy with 1-click via Render Dashboard: New -> Blueprint
+services:
+  - type: web
+    name: classtest-app
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: classtest-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: TEST_DURATION_SECONDS
+        value: "1200"
+      - key: MAX_STUDENTS_PER_GAME
+        value: "50"
+
+databases:
+  - name: classtest-db
+    databaseName: classtest
+    user: classtest
+    plan: free
+    region: frankfurt

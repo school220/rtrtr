@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: classtest-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: classroom_secure_password
+      POSTGRES_DB: classroom_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: classtest-app
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://postgres:classroom_secure_password@postgres:5432/classroom_test
+      TEST_DURATION_SECONDS: 1200
+      MAX_STUDENTS_PER_GAME: 50
+      GRADE_5_MIN: 90
+      GRADE_4_MIN: 75
+      GRADE_3_MIN: 50
+      GRADE_2_MIN: 0
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

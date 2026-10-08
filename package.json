@@ -1,0 +1,23 @@
+{
+  "name": "online-testing-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-ready real-time classroom testing system for 37+ simultaneous students",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "build": "npm run build --workspace=server && npm run build --workspace=client",
+    "start": "node server/dist/index.js",
+    "migrate": "npm run migrate --workspace=server",
+    "seed": "npm run seed --workspace=server",
+    "test": "npm run test --workspace=server",
+    "test:load": "npm run test:load --workspace=server",
+    "test:e2e": "npm run test:e2e --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
