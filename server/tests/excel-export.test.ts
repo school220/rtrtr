@@ -132,7 +132,7 @@ describe('ExcelService - Exporting Test Results to Excel (.xlsx)', () => {
     expect(headerRow.getCell(2).value).toBe('Фамилия');
     expect(headerRow.getCell(3).value).toBe('Имя');
     expect(headerRow.getCell(4).value).toBe('Оценка');
-    expect(headerRow.getCell(5).value).toBe('Баллы (из 30)');
+    expect(headerRow.getCell(5).value).toBe('Баллы (из 20)');
     expect(headerRow.getCell(6).value).toBe('Результат (%)');
     expect(headerRow.getCell(10).value).toBe('Дата и время сдачи');
 

@@ -50,6 +50,7 @@ export interface StudentStateResponse {
   };
   currentQuestionNumber: number;
   currentQuestion?: QuestionData;
+  questions?: QuestionData[];
   answeredMap: Record<number, { selectedOptionId?: number; answerText?: string }>;
   answeredCount: number;
   totalQuestions: number;
@@ -125,12 +126,101 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return data as T;
 }
 
+export const TEACHER_TOKEN_KEY = 'proctor_session_token';
+
 export const api = {
+  // Teacher Authentication
+  teacherLogin: async (credentials: { username: string; password: string }) => {
+    const res = await request<{
+      success: boolean;
+      token: string;
+      username: string;
+      role: string;
+      message: string;
+    }>('/teacher/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    if (res.token) {
+      sessionStorage.setItem(TEACHER_TOKEN_KEY, res.token);
+    }
+    return res;
+  },
+
+  verifyTeacherSession: async (): Promise<boolean> => {
+    const token = sessionStorage.getItem(TEACHER_TOKEN_KEY);
+    if (!token) return false;
+    try {
+      const res = await request<{ valid: boolean }>('/teacher/verify', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.valid;
+    } catch {
+      sessionStorage.removeItem(TEACHER_TOKEN_KEY);
+      return false;
+    }
+  },
+
+  teacherLogout: async (): Promise<void> => {
+    const token = sessionStorage.getItem(TEACHER_TOKEN_KEY);
+    if (token) {
+      try {
+        await request('/teacher/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        // ignore
+      }
+      sessionStorage.removeItem(TEACHER_TOKEN_KEY);
+    }
+  },
+
+  isTeacherAuthenticated: (): boolean => {
+    return Boolean(sessionStorage.getItem(TEACHER_TOKEN_KEY));
+  },
+
+  startProctorPreview: (formId: number = 1) => {
+    const token = sessionStorage.getItem(TEACHER_TOKEN_KEY);
+    return request<JoinGameResponse>('/teacher/preview-session', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({ formId }),
+    });
+  },
+
   createGame: (params: { title?: string; durationSeconds?: number } = {}) =>
     request<{ gameId: string; code: string; status: string; durationSeconds: number; maxStudents: number }>(
       '/games',
       { method: 'POST', body: JSON.stringify(params) }
     ),
+
+  getRecentGames: () =>
+    request<{
+      id: string;
+      code: string;
+      title: string;
+      status: string;
+      created_at: string;
+      started_at?: string;
+      finished_at?: string;
+      total_time_seconds: number;
+      student_count: number;
+    }[]>('/games/recent'),
+
+  getActiveGame: () =>
+    request<{
+      id: string;
+      code: string;
+      title: string;
+      status: string;
+      created_at: string;
+      started_at?: string;
+      finished_at?: string;
+      total_time_seconds: number;
+      student_count: number;
+    } | null>('/games/active'),
 
   getGameByCode: (code: string) => request<GameInfo>(`/games/code/${encodeURIComponent(code)}`),
 
@@ -150,6 +240,9 @@ export const api = {
 
   getStudentState: (gameId: string, studentId: number) =>
     request<StudentStateResponse>(`/games/${gameId}/student/${studentId}/state`),
+
+  getAllQuestions: (gameId: string, studentId: number) =>
+    request<QuestionData[]>(`/games/${gameId}/student/${studentId}/questions`),
 
   getQuestion: (gameId: string, studentId: number, questionNumber: number) =>
     request<QuestionData>(`/games/${gameId}/student/${studentId}/question/${questionNumber}`),
@@ -190,9 +283,46 @@ export const api = {
       '/import/forms-status'
     ),
 
+  getFormDetail: (formId: number) =>
+    request<FormDetailResponse>(`/import/form/${formId}`),
+
+  updateQuestion: (
+    questionId: number,
+    data: {
+      text: string;
+      correct_answer: string;
+      explanation?: string;
+      options?: { label: string; text: string; is_correct?: boolean }[];
+    }
+  ) =>
+    request<{ success: boolean; message: string }>(`/import/question/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
   importForm: (formData: any) =>
     request<{ success: boolean; message: string }>('/import/form', {
       method: 'POST',
       body: JSON.stringify(formData),
     }),
 };
+
+export interface FormDetailResponse {
+  form_id: number;
+  title: string;
+  questions: {
+    id: number;
+    number: number;
+    type: 'multiple_choice' | 'short_answer';
+    text: string;
+    points: number;
+    correct_answer: string;
+    explanation?: string;
+    options?: {
+      id?: number;
+      label: string;
+      text: string;
+      is_correct: boolean;
+    }[];
+  }[];
+}

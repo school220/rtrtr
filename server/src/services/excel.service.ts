@@ -94,7 +94,7 @@ export class ExcelService {
     // Row 3: Timing and class summary
     worksheet.mergeCells('A3:K3');
     const timingCell = worksheet.getCell('A3');
-    timingCell.value = `Время начала: ${testTimeStart}  |  Время окончания: ${testTimeEnd}  |  Участников: ${students.length} / ${game.max_students}  |  Средний балл: ${avgScore}/30  |  Средняя оценка: ${avgGrade}`;
+    timingCell.value = `Время начала: ${testTimeStart}  |  Время окончания: ${testTimeEnd}  |  Участников: ${students.length} / ${game.max_students}  |  Средний балл: ${avgScore}/20  |  Средняя оценка: ${avgGrade}`;
     timingCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF475569' } };
     timingCell.alignment = { vertical: 'middle', horizontal: 'center' };
     timingCell.fill = {
@@ -129,7 +129,7 @@ export class ExcelService {
       'Фамилия',
       'Имя',
       'Оценка',
-      'Баллы (из 30)',
+      'Баллы (из 20)',
       'Результат (%)',
       'Бланк',
       'ID',

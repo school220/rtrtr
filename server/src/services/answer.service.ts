@@ -66,15 +66,6 @@ export class AnswerService {
         throw new Error('Вы уже завершили этот тест.');
       }
 
-      // 3. Check if already answered (immutability check)
-      const existingAns = await db.query(
-        `SELECT id FROM student_answers WHERE game_id = $1 AND student_id = $2 AND question_number = $3`,
-        [gameId, studentId, questionNumber]
-      );
-      if (existingAns.rows.length > 0) {
-        throw new Error('Ответ на данный вопрос уже отправлен и не может быть изменён.');
-      }
-
       // 4. Fetch question metadata and correct answer
       const qRes = await db.query(
         `SELECT q.id, q.type, q.points, q.correct_answer, q.metadata
@@ -127,11 +118,18 @@ export class AnswerService {
         points = isCorrect ? (question.points || 1) : 0;
       }
 
-      // 5. Store answer securely
+      // 5. Store or update answer securely
       await db.query(
         `INSERT INTO student_answers
          (game_id, student_id, form_id, question_number, question_id, selected_option_id, answer_text, is_correct, points, answered_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+         ON CONFLICT (game_id, student_id, question_number)
+         DO UPDATE SET
+           selected_option_id = EXCLUDED.selected_option_id,
+           answer_text = EXCLUDED.answer_text,
+           is_correct = EXCLUDED.is_correct,
+           points = EXCLUDED.points,
+           answered_at = CURRENT_TIMESTAMP`,
         [
           gameId,
           studentId,
@@ -151,17 +149,10 @@ export class AnswerService {
         [gameId, studentId]
       );
       const totalAnswered = parseInt(countRes.rows[0]?.count || '0', 10);
-      const isFinished = totalAnswered >= 30;
-
-      if (isFinished) {
-        await db.query(
-          `UPDATE students SET status = 'FINISHED', finished_at = CURRENT_TIMESTAMP WHERE id = $1`,
-          [student.id]
-        );
-      }
+      const isFinished = student.status === 'FINISHED';
 
       // Next question number
-      const nextQuestionNumber = questionNumber < 30 ? questionNumber + 1 : null;
+      const nextQuestionNumber = questionNumber < 20 ? questionNumber + 1 : null;
 
       // Log event
       await EventService.logEvent(gameId, studentId, 'QUESTION_ANSWERED', {

@@ -60,8 +60,59 @@ export class QuestionService {
   }
 
   /**
-   * Verifies that a form has exactly 30 questions:
-   * 1-20 multiple choice with 4 options, 21-30 short answer.
+   * Retrieves all questions for a student's form in a single batch query.
+   */
+  public static async getAllQuestionsForStudent(
+    formId: number
+  ): Promise<StudentSafeQuestion[]> {
+    const db = await getDb();
+
+    const res = await db.query(
+      `SELECT 
+         fq.question_number,
+         q.id as question_id,
+         q.text,
+         q.type,
+         ao.id as option_id,
+         ao.option_label,
+         ao.option_text
+       FROM form_questions fq
+       JOIN questions q ON fq.question_id = q.id
+       LEFT JOIN answer_options ao ON q.id = ao.question_id
+       WHERE fq.form_id = $1
+       ORDER BY fq.question_number ASC, ao.sort_order ASC`,
+      [formId]
+    );
+
+    const questionsMap = new Map<number, StudentSafeQuestion>();
+
+    for (const r of res.rows) {
+      if (!questionsMap.has(r.question_number)) {
+        questionsMap.set(r.question_number, {
+          id: r.question_id,
+          formId,
+          questionNumber: r.question_number,
+          text: r.text,
+          type: r.type,
+          options: r.type === 'multiple_choice' ? [] : undefined,
+        });
+      }
+
+      if (r.type === 'multiple_choice' && r.option_id) {
+        questionsMap.get(r.question_number)!.options!.push({
+          id: r.option_id,
+          label: r.option_label,
+          text: r.option_text,
+        });
+      }
+    }
+
+    return Array.from(questionsMap.values());
+  }
+
+  /**
+   * Verifies that a form has exactly 20 questions:
+   * 1-15 multiple choice with 4 options, 16-20 short answer.
    */
   public static async verifyFormIntegrity(
     formId: number,
@@ -79,14 +130,14 @@ export class QuestionService {
       [formId]
     );
 
-    if (fqRes.rows.length !== 30) {
-      errors.push(`Бланк №${formId} содержит ${fqRes.rows.length} вопросов вместо ровно 30.`);
+    if (fqRes.rows.length !== 20) {
+      errors.push(`Бланк №${formId} содержит ${fqRes.rows.length} вопросов вместо ровно 20.`);
       return { valid: false, errors };
     }
 
     for (const row of fqRes.rows) {
       const qNum = row.question_number;
-      if (qNum <= 20) {
+      if (qNum <= 15) {
         if (row.type !== 'multiple_choice') {
           errors.push(`Вопрос ${qNum} в бланке №${formId} должен быть multiple_choice.`);
         } else {

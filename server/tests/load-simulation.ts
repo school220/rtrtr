@@ -156,11 +156,11 @@ export async function runLoadSimulation(studentCount: number = 37) {
     await Promise.all(startPromises);
     console.log('✅ All 37 students received real-time game:started WebSocket event.');
 
-    // 6. All 37 students answer all 30 questions concurrently
-    console.log(`📝 Simulating answering: ${studentCount} students × 30 questions = ${studentCount * 30} answers...`);
+    // 6. All 37 students answer all 20 questions concurrently
+    console.log(`📝 Simulating answering: ${studentCount} students × 20 questions = ${studentCount * 20} answers...`);
 
     const answerAllStudentsPromises = students.map(async (st) => {
-      for (let qNum = 1; qNum <= 30; qNum++) {
+      for (let qNum = 1; qNum <= 20; qNum++) {
         // Fetch question projection
         const qRes = await fetch(`${baseUrl}/api/games/${gameId}/student/${st.studentId}/question/${qNum}`);
         if (!qRes.ok) throw new Error(`Student ${st.studentId} failed to fetch question ${qNum}`);
@@ -174,7 +174,7 @@ export async function runLoadSimulation(studentCount: number = 37) {
           payload.selectedOptionId = opt.id;
         } else {
           // Short answer: submit answers
-          payload.answerText = qNum === 22 ? '0.5' : qNum === 28 ? '1/2' : '4';
+          payload.answerText = qNum === 18 ? '0.5' : qNum === 19 ? '1/2' : '4';
         }
 
         const submitRes = await fetch(`${baseUrl}/api/games/${gameId}/student/${st.studentId}/answer`, {
@@ -198,7 +198,7 @@ export async function runLoadSimulation(studentCount: number = 37) {
     });
 
     await Promise.all(answerAllStudentsPromises);
-    console.log(`✅ All ${studentCount * 30} answers successfully submitted!`);
+    console.log(`✅ All ${studentCount * 20} answers successfully submitted!`);
 
     // 7. Verify Teacher Dashboard and Database Record Integrity
     console.log('🔍 Checking database results and teacher dashboard snapshot...');
@@ -216,10 +216,10 @@ export async function runLoadSimulation(studentCount: number = 37) {
       [gameId]
     );
     const answersRecorded = parseInt(totalAnswersInDb.rows[0].count, 10);
-    console.log(`💾 Total answers recorded in database: ${answersRecorded} / ${studentCount * 30}`);
+    console.log(`💾 Total answers recorded in database: ${answersRecorded} / ${studentCount * 20}`);
 
-    if (answersRecorded !== studentCount * 30) {
-      throw new Error(`Data loss detected! Recorded: ${answersRecorded}, expected: ${studentCount * 30}`);
+    if (answersRecorded !== studentCount * 20) {
+      throw new Error(`Data loss detected! Recorded: ${answersRecorded}, expected: ${studentCount * 20}`);
     }
 
     console.log('✅ ZERO lost answers! Exactly 100% of responses preserved.');

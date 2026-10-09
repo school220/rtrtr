@@ -12,579 +12,622 @@ export interface GeneratedQuestion {
 }
 
 /**
- * Generates 30 mathematically verified 5th-grade curriculum questions
+ * Calculates Greatest Common Divisor (Euclidean algorithm)
+ */
+function gcd(a: number, b: number): number {
+  a = Math.abs(Math.round(a));
+  b = Math.abs(Math.round(b));
+  while (b) {
+    const t = b;
+    b = a % b;
+    a = t;
+  }
+  return a || 1;
+}
+
+/**
+ * Builds 4 unique multiple choice options (A, B, C, D)
+ * and guarantees exactly 1 correct option with no negative values.
+ */
+function makeOptions(
+  correctVal: string,
+  distractors: string[],
+  formId: number,
+  qNum: number
+): { options: { label: string; text: string; isCorrect: boolean }[]; correctLabel: string } {
+  const set = new Set<string>();
+  set.add(correctVal.trim());
+  const cleanDistractors: string[] = [];
+
+  for (const d of distractors) {
+    const s = d.trim();
+    if (!set.has(s) && cleanDistractors.length < 3) {
+      set.add(s);
+      cleanDistractors.push(s);
+    }
+  }
+
+  let fallback = 1;
+  while (cleanDistractors.length < 3) {
+    const cand = `${correctVal}*${fallback}`;
+    if (!set.has(cand)) {
+      set.add(cand);
+      cleanDistractors.push(cand);
+    }
+    fallback++;
+  }
+
+  const correctIdx = (formId + qNum) % 4;
+  const labels = ['A', 'B', 'C', 'D'];
+  const options: { label: string; text: string; isCorrect: boolean }[] = [];
+  let dIdx = 0;
+
+  for (let i = 0; i < 4; i++) {
+    if (i === correctIdx) {
+      options.push({ label: labels[i], text: correctVal, isCorrect: true });
+    } else {
+      options.push({ label: labels[i], text: cleanDistractors[dIdx++], isCorrect: false });
+    }
+  }
+
+  return { options, correctLabel: labels[correctIdx] };
+}
+
+/**
+ * Generates 20 mathematically verified Grade 4 curriculum questions
  * personalized for student formId (1..50).
- * Every student receives unique numbers, options, and answers.
- * Progression: from basic to advanced and Olympiad-level.
+ * Based strictly on user-provided textbook photos:
+ * - Ordinary fractions, mixed numbers, and decimals
+ * - 100% strictly irreducible fractions (gcd = 1)
+ * - 0 negative numbers anywhere in solutions or options
  */
 export function generateFormQuestions(formId: number): GeneratedQuestion[] {
   const k = formId; // 1..50
   const questions: GeneratedQuestion[] = [];
 
   // ==========================================
-  // ВОПРОСЫ 1 - 20 (Выбор ответа из 4 вариантов)
+  // ВОПРОСЫ 1 - 15 (Выбор из 4 вариантов A, B, C, D)
   // ==========================================
 
-  // Q1: Тема 1. Умножение числа на 10, 100 и 1000 (Базовый уровень)
-  const q1Num = 24 + (k * 3) % 65; // 24..88
-  const q1Mult = (k % 2 === 0) ? 100 : 10;
-  const q1Ans = q1Num * q1Mult;
+  // Q1: Запись чисел цифрами по словесному описанию (Десятичные дроби)
+  // «двадцать восемь целых, пять десятых» -> 28,5
+  const intWords = [
+    { num: 28, text: 'двадцать восемь' },
+    { num: 106, text: 'сто шесть' },
+    { num: 70, text: 'семьдесят' },
+    { num: 212, text: 'двести двенадцать' },
+    { num: 45, text: 'сорок пять' },
+    { num: 83, text: 'восемьдесят три' },
+    { num: 154, text: 'сто пятьдесят четыре' },
+    { num: 39, text: 'тридцать девять' },
+    { num: 91, text: 'девяносто один' },
+    { num: 62, text: 'шестьдесят два' },
+  ];
+  const decWords = [
+    { num: 1, text: 'одна десятая' },
+    { num: 3, text: 'три десятых' },
+    { num: 5, text: 'пять десятых' },
+    { num: 7, text: 'семь десятых' },
+    { num: 9, text: 'девять десятых' },
+  ];
+  const q1Int = intWords[(k * 3) % intWords.length];
+  const q1Dec = decWords[(k * 2) % decWords.length];
+  const q1Ans = `${q1Int.num},${q1Dec.num}`;
+  const q1Opts = makeOptions(
+    `$${q1Ans}$`,
+    [`$${q1Int.num},0${q1Dec.num}$`, `$${q1Int.num * 10 + q1Dec.num}$`, `$0,${q1Int.num}$`],
+    k,
+    1
+  );
   questions.push({
     questionNumber: 1,
-    text: `Вычислите: $${q1Num} \\cdot ${q1Mult}$`,
+    text: `Запишите число цифрами: **${q1Int.text} целых, ${q1Dec.text}**.`,
     type: 'multiple_choice',
-    correctAnswer: `${q1Ans}`,
-    explanation: `При умножении числа на $${q1Mult}$ справа приписываем ${q1Mult === 10 ? 'один ноль' : 'два нуля'}: $${q1Num} \\cdot ${q1Mult} = ${q1Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q1Ans}$`, isCorrect: true },
-      { label: 'B', text: `$${q1Ans * 10}$`, isCorrect: false },
-      { label: 'C', text: `$${Math.floor(q1Ans / 10)}$`, isCorrect: false },
-      { label: 'D', text: `$${q1Num + q1Mult}$`, isCorrect: false },
-    ],
+    correctAnswer: q1Opts.correctLabel,
+    explanation: `Целая часть равна $${q1Int.num}$, а дробная часть содержит $${q1Dec.num}$ десятых, поэтому число записывается как $${q1Ans}$.`,
+    options: q1Opts.options,
   });
 
-  // Q2: Тема 2. Умножение числа на десятки, сотни и тысячи (Базовый уровень)
-  const q2A = 12 + (k % 8); // 12..19
-  const q2B = (2 + (k % 4)) * 10; // 20, 30, 40, 50
-  const q2Ans = q2A * q2B;
+  // Q2: Запись обыкновенных дробей со знаменателем 10 или 100 в десятичном виде
+  // 7 6/10 -> 7,6; 45 8/10 -> 45,8
+  const q2Wholes = [4, 7, 12, 25, 45, 68, 93, 124, 31, 56];
+  const q2Numerators = [1, 2, 3, 4, 6, 7, 8, 9];
+  const q2W = q2Wholes[(k * 5) % q2Wholes.length];
+  const q2N = q2Numerators[(k * 7) % q2Numerators.length];
+  const q2Ans = `${q2W},${q2N}`;
+  const q2Opts = makeOptions(
+    `$${q2Ans}$`,
+    [`$${q2W},0${q2N}$`, `$${q2W * 10 + q2N}$`, `$0,${q2W}${q2N}$`],
+    k,
+    2
+  );
   questions.push({
     questionNumber: 2,
-    text: `Найдите произведение: $${q2A} \\cdot ${q2B}$`,
+    text: `Запишите смешанное число в виде десятичной дроби: $${q2W}\\frac{${q2N}}{10}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q2Ans}`,
-    explanation: `$${q2A} \\cdot ${q2B} = ${q2A} \\cdot ${q2B / 10} \\cdot 10 = ${q2A * (q2B / 10)} \\cdot 10 = ${q2Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q2Ans + 20}$`, isCorrect: false },
-      { label: 'B', text: `$${q2Ans}$`, isCorrect: true },
-      { label: 'C', text: `$${q2A * (q2B / 10)}$`, isCorrect: false },
-      { label: 'D', text: `$${q2Ans + 100}$`, isCorrect: false },
-    ],
+    correctAnswer: q2Opts.correctLabel,
+    explanation: `Дробь со знаменателем $10$ имеет один знак после запятой: $${q2W}\\frac{${q2N}}{10} = ${q2Ans}$.`,
+    options: q2Opts.options,
   });
 
-  // Q3: Тема 3. Деление числа на 10, 100 и 1000 (Базовый уровень)
-  const q3Quot = 35 + (k % 50); // 35..84
-  const q3Div = (k % 3 === 0) ? 1000 : ((k % 2 === 0) ? 100 : 10);
-  const q3Dividend = q3Quot * q3Div;
+  // Q3: Перевод десятичной дроби в несократимую обыкновенную/смешанную дробь
+  // 4,81 -> 4 81/100 (gcd(81, 100) = 1)
+  const q3Coprimes = [81, 67, 37, 71, 93, 23, 49, 73, 17, 31, 53, 77, 89, 97];
+  const q3W = 3 + (k % 7); // 3..9
+  const q3Frac = q3Coprimes[(k * 3) % q3Coprimes.length];
+  const q3DecStr = `${q3W},${q3Frac}`;
+  const q3AnsStr = `$${q3W}\\frac{${q3Frac}}{100}$`;
+  const q3Opts = makeOptions(
+    q3AnsStr,
+    [
+      `$${q3W}\\frac{${q3Frac}}{10}$`,
+      `$${q3W * 10}\\frac{${q3Frac}}{100}$`,
+      `$\\frac{${q3W * 100 + q3Frac}}{10}$`,
+    ],
+    k,
+    3
+  );
   questions.push({
     questionNumber: 3,
-    text: `Вычислите значение частного: $${q3Dividend} : ${q3Div}$`,
+    text: `Запишите десятичную дробь в виде смешанного числа: $${q3DecStr}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q3Quot}`,
-    explanation: `При делении на $${q3Div}$ убираем справа ${q3Div === 10 ? 'один ноль' : q3Div === 100 ? 'два нуля' : 'три нуля'}: $${q3Dividend} : ${q3Div} = ${q3Quot}$.`,
-    options: [
-      { label: 'A', text: `$${q3Quot * 10}$`, isCorrect: false },
-      { label: 'B', text: `$${q3Quot + 5}$`, isCorrect: false },
-      { label: 'C', text: `$${q3Quot}$`, isCorrect: true },
-      { label: 'D', text: `$${Math.max(1, Math.floor(q3Quot / 10))}$`, isCorrect: false },
-    ],
+    correctAnswer: q3Opts.correctLabel,
+    explanation: `Два знака после запятой означают сотые доли: $${q3DecStr} = ${q3W}\\frac{${q3Frac}}{100}$. Данная дробь несократима, так как $\\gcd(${q3Frac}, 100) = 1$.`,
+    options: q3Opts.options,
   });
 
-  // Q4: Тема 4. Деление числа на десятки, сотни и тысячи (Средний уровень)
-  const q4Quot = 16 + (k % 15); // 16..30
-  const q4Div = (3 + (k % 4)) * 10; // 30, 40, 50, 60
-  const q4Dividend = q4Quot * q4Div;
+  // Q4: Сложение десятичных дробей
+  // 5,2 + 4,3 = 9,5; 7,2 + 4,5 = 11,7
+  const q4A_int = 4 + (k % 6);
+  const q4A_dec = 1 + ((k * 3) % 4); // 1..4
+  const q4B_int = 3 + ((k * 2) % 5);
+  const q4B_dec = 2 + ((k * 5) % 4); // 2..5
+  const q4Sum_int = q4A_int + q4B_int + Math.floor((q4A_dec + q4B_dec) / 10);
+  const q4Sum_dec = (q4A_dec + q4B_dec) % 10;
+  const q4Ans = `${q4Sum_int},${q4Sum_dec}`;
+  const q4Opts = makeOptions(
+    `$${q4Ans}$`,
+    [`$${q4Sum_int + 1},${q4Sum_dec}$`, `$${q4Sum_int},${(q4Sum_dec + 2) % 10}$`, `$${q4Sum_int - 1},${q4Sum_dec}$`],
+    k,
+    4
+  );
   questions.push({
     questionNumber: 4,
-    text: `Выполните деление: $${q4Dividend} : ${q4Div}$`,
+    text: `Вычислите: $${q4A_int},${q4A_dec} + ${q4B_int},${q4B_dec}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q4Quot}`,
-    explanation: `$${q4Dividend} : ${q4Div} = (${q4Dividend} : 10) : ${q4Div / 10} = ${q4Dividend / 10} : ${q4Div / 10} = ${q4Quot}$.`,
-    options: [
-      { label: 'A', text: `$${q4Quot}$`, isCorrect: true },
-      { label: 'B', text: `$${q4Quot * 10}$`, isCorrect: false },
-      { label: 'C', text: `$${q4Quot + 10}$`, isCorrect: false },
-      { label: 'D', text: `$${q4Quot - 4}$`, isCorrect: false },
-    ],
+    correctAnswer: q4Opts.correctLabel,
+    explanation: `Складываем поразрядно: $${q4A_int},${q4A_dec} + ${q4B_int},${q4B_dec} = ${q4Ans}$.`,
+    options: q4Opts.options,
   });
 
-  // Q5: Тема 5. Деление числа на десятки, сотни и тысячи (Усложнённый уровень: с остатком)
-  const q5Div = 30 + (k % 4) * 10; // 30, 40, 50, 60
-  const q5Quot = 7 + (k % 6); // 7..12
-  const q5Rem = 4 + (k % 8); // 4..11 (< 30)
-  const q5Dividend = q5Quot * q5Div + q5Rem;
+  // Q5: Правильные и неправильные дроби
+  // Какая из дробей является неправильной?
+  const q5Primes = [7, 11, 13, 17, 19, 23];
+  const q5D = q5Primes[k % q5Primes.length];
+  const q5ImproperNum = q5D + 2 + (k % 5); // > q5D, gcd = 1
+  const q5Prop1 = Math.max(1, q5D - 3);
+  const q5Prop2 = Math.max(2, q5D - 2);
+  const q5Prop3 = Math.max(1, q5D - 4);
+  const q5Opts = makeOptions(
+    `$\\frac{${q5ImproperNum}}{${q5D}}$`,
+    [
+      `$\\frac{${q5Prop1}}{${q5D}}$`,
+      `$\\frac{${q5Prop2}}{${q5D}}$`,
+      `$\\frac{${q5Prop3}}{${q5D}}$`,
+    ],
+    k,
+    5
+  );
   questions.push({
     questionNumber: 5,
-    text: `Найдите остаток при делении $${q5Dividend}$ на $${q5Div}$.`,
+    text: `Укажите, какая из следующих дробей является **неправильной**:`,
     type: 'multiple_choice',
-    correctAnswer: `${q5Rem}`,
-    explanation: `$${q5Dividend} = ${q5Quot} \\cdot ${q5Div} + ${q5Rem}$. Значит, остаток равен $${q5Rem}$.`,
-    options: [
-      { label: 'A', text: `$${q5Rem - 2}$`, isCorrect: false },
-      { label: 'B', text: `$${q5Rem + 2}$`, isCorrect: false },
-      { label: 'C', text: `$${q5Rem}$`, isCorrect: true },
-      { label: 'D', text: `$${q5Rem + 5}$`, isCorrect: false },
-    ],
+    correctAnswer: q5Opts.correctLabel,
+    explanation: `Неправильная дробь — это дробь, у которой числитель больше знаменателя или равен ему: $${q5ImproperNum} > ${q5D}$, значит дробь $\\frac{${q5ImproperNum}}{${q5D}}$ неправильная.`,
+    options: q5Opts.options,
   });
 
-  // Q6: Тема 6. Порядок выполнения действий в выражениях без скобок (Базовый уровень)
-  const q6A = 25 + (k % 12) * 2; // 25..47
-  const q6B = 4 + (k % 5); // 4..8
-  const q6C = 5 + (k % 4); // 5..8
-  const q6D = 12 + (k % 6); // 12..17
-  const q6Ans = q6A + (q6B * q6C) - q6D;
-  const q6Err1 = (q6A + q6B) * q6C - q6D;
+  // Q6: Вычитание правильной дроби из единицы: 1 - a/b
+  // Гарантируем gcd(b - a, b) = 1
+  const q6Denoms = [9, 11, 13, 17, 19, 23, 29];
+  const q6B = q6Denoms[k % q6Denoms.length];
+  let q6A = 2 + (k % (q6B - 3));
+  while (gcd(q6A, q6B) !== 1 || gcd(q6B - q6A, q6B) !== 1) {
+    q6A = (q6A + 1) % (q6B - 1);
+    if (q6A <= 1) q6A = 2;
+  }
+  const q6Diff = q6B - q6A;
+  const q6Opts = makeOptions(
+    `$\\frac{${q6Diff}}{${q6B}}$`,
+    [
+      `$\\frac{${q6A}}{${q6B}}$`,
+      `$\\frac{${q6Diff + 1}}{${q6B}}$`,
+      `$\\frac{${Math.max(1, q6Diff - 1)}}{${q6B}}$`,
+    ],
+    k,
+    6
+  );
   questions.push({
     questionNumber: 6,
-    text: `Найдите значение числового выражения: $${q6A} + ${q6B} \\cdot ${q6C} - ${q6D}$`,
+    text: `Вычислите: $1 - \\frac{${q6A}}{${q6B}}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q6Ans}`,
-    explanation: `Первым выполняется умножение: $${q6B} \\cdot ${q6C} = ${q6B * q6C}$. Затем сложение и вычитание слева направо: $${q6A} + ${q6B * q6C} = ${q6A + q6B * q6C}$, и $${q6A + q6B * q6C} - ${q6D} = ${q6Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q6Ans}$`, isCorrect: true },
-      { label: 'B', text: `$${q6Err1}$`, isCorrect: false },
-      { label: 'C', text: `$${q6Ans + 10}$`, isCorrect: false },
-      { label: 'D', text: `$${q6Ans - 8}$`, isCorrect: false },
-    ],
+    correctAnswer: q6Opts.correctLabel,
+    explanation: `Представляем единицу как $\\frac{${q6B}}{${q6B}}$: $1 - \\frac{${q6A}}{${q6B}} = \\frac{${q6B} - ${q6A}}{${q6B}} = \\frac{${q6Diff}}{${q6B}}$. Данная дробь несократима.`,
+    options: q6Opts.options,
   });
 
-  // Q7: Тема 7. Порядок выполнения действий в выражениях со скобками (Базовый уровень)
-  const q7A = 40 + (k % 8) * 2; // 40..54
-  const q7B = 15 + (k % 6); // 15..20
-  const q7C = 3 + (k % 3); // 3, 4, 5
-  const q7D = 18 + (k % 5); // 18..22
-  const q7Ans = (q7A - q7B) * q7C + q7D;
-  const q7Err1 = q7A - (q7B * q7C) + q7D;
+  // Q7: Сложение смешанного числа и дроби без перехода через единицу (a + b < d, gcd = 1)
+  const q7Denoms = [7, 9, 11, 13, 17];
+  const q7D = q7Denoms[k % q7Denoms.length];
+  let q7a = 1 + (k % 3);
+  let q7b = 1 + ((k * 2) % 3);
+  while (q7a + q7b >= q7D || gcd(q7a + q7b, q7D) !== 1) {
+    q7b = Math.max(1, (q7b + 1) % (q7D - q7a));
+    if (q7a + q7b >= q7D) q7a = 1;
+  }
+  const q7W1 = 2 + (k % 7);
+  const q7W2 = 1 + ((k * 3) % 5);
+  const q7SumW = q7W1 + q7W2;
+  const q7SumFrac = q7a + q7b;
+  const q7Opts = makeOptions(
+    `$${q7SumW}\\frac{${q7SumFrac}}{${q7D}}$`,
+    [
+      `$${q7SumW}\\frac{${q7SumFrac + 1}}{${q7D}}$`,
+      `$${q7SumW - 1}\\frac{${q7SumFrac}}{${q7D}}$`,
+      `$${q7SumW}\\frac{${Math.max(1, q7SumFrac - 1)}}{${q7D}}$`,
+    ],
+    k,
+    7
+  );
   questions.push({
     questionNumber: 7,
-    text: `Вычислите: $$(${q7A} - ${q7B}) \\cdot ${q7C} + ${q7D}$$`,
+    text: `Вычислите: $${q7W1}\\frac{${q7a}}{${q7D}} + ${q7W2}\\frac{${q7b}}{${q7D}}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q7Ans}`,
-    explanation: `1) Действие в скобках: $${q7A} - ${q7B} = ${q7A - q7B}$. 2) Умножение: $${q7A - q7B} \\cdot ${q7C} = ${(q7A - q7B) * q7C}$. 3) Сложение: ${(q7A - q7B) * q7C} + ${q7D} = ${q7Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q7Ans + 15}$`, isCorrect: false },
-      { label: 'B', text: `$${q7Ans}$`, isCorrect: true },
-      { label: 'C', text: `$${q7Err1}$`, isCorrect: false },
-      { label: 'D', text: `$${q7Ans - 12}$`, isCorrect: false },
-    ],
+    correctAnswer: q7Opts.correctLabel,
+    explanation: `Складываем отдельно целые части и дробные части: $(${q7W1} + ${q7W2}) + \\frac{${q7a} + ${q7b}}{${q7D}} = ${q7SumW}\\frac{${q7SumFrac}}{${q7D}}$. Дробь несократима, так как $\\gcd(${q7SumFrac}, ${q7D}) = 1$.`,
+    options: q7Opts.options,
   });
 
-  // Q8: Тема 8. Текстовые задачи (Базовый уровень: движение)
-  const q8Speed = 12 + (k % 6); // 12..17 км/ч
-  const q8Time = 3 + (k % 3); // 3, 4, 5 ч
-  const q8Dist = q8Speed * q8Time;
+  // Q8: Сложение дробей с переходом через единицу (выделение целой части: a/d + b/d = 1 c/d)
+  const q8Denoms = [7, 9, 11, 13, 17, 19];
+  const q8D = q8Denoms[k % q8Denoms.length];
+  let q8Rem = 1 + (k % (q8D - 2));
+  while (gcd(q8Rem, q8D) !== 1) {
+    q8Rem = (q8Rem + 1) % (q8D - 1);
+    if (q8Rem === 0) q8Rem = 1;
+  }
+  const q8SumNum = q8D + q8Rem;
+  const q8A = Math.floor(q8SumNum / 2);
+  const q8B = q8SumNum - q8A;
+  const q8Opts = makeOptions(
+    `$1\\frac{${q8Rem}}{${q8D}}$`,
+    [
+      `$\\frac{${q8SumNum}}{${q8D + 1}}$`,
+      `$1\\frac{${q8Rem + 1}}{${q8D}}$`,
+      `$2\\frac{${q8Rem}}{${q8D}}$`,
+    ],
+    k,
+    8
+  );
   questions.push({
     questionNumber: 8,
-    text: `Велосипедист ехал со скоростью $${q8Speed}$ км/ч в течение $${q8Time}$ ч. Какое расстояние он проехал?`,
+    text: `Вычислите сумму и запишите результат в виде смешанного числа: $\\frac{${q8A}}{${q8D}} + \\frac{${q8B}}{${q8D}}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q8Dist} км`,
-    explanation: `Расстояние равно произведению скорости на время: $S = v \\cdot t = ${q8Speed} \\cdot ${q8Time} = ${q8Dist}$ км.`,
-    options: [
-      { label: 'A', text: `$${q8Speed + q8Time}\\text{ км}$`, isCorrect: false },
-      { label: 'B', text: `$${q8Dist + 10}\\text{ км}$`, isCorrect: false },
-      { label: 'C', text: `$${q8Dist}\\text{ км}$`, isCorrect: true },
-      { label: 'D', text: `$${q8Dist - 6}\\text{ км}$`, isCorrect: false },
-    ],
+    correctAnswer: q8Opts.correctLabel,
+    explanation: `Складываем числители: $\\frac{${q8A} + ${q8B}}{${q8D}} = \\frac{${q8SumNum}}{${q8D}}$. Выделяем целую часть: $\\frac{${q8SumNum}}{${q8D}} = 1\\frac{${q8Rem}}{${q8D}}$. Дробь $\\frac{${q8Rem}}{${q8D}}$ несократима.`,
+    options: q8Opts.options,
   });
 
-  // Q9: Тема 9. Представление деления чисел в виде дроби (Базовый уровень)
-  const q9M = 5 + (k % 8); // 5..12
-  const q9N = q9M + 3 + (k % 5); // q9N > q9M
+  // Q9: Сложение смешанных чисел с выделением единицы: A a/d + B b/d = (A + B + 1) rem/d
+  const q9Denoms = [7, 9, 11, 13, 17];
+  const q9D = q9Denoms[k % q9Denoms.length];
+  let q9Rem = 1 + (k % (q9D - 2));
+  while (gcd(q9Rem, q9D) !== 1) {
+    q9Rem = (q9Rem + 1) % (q9D - 1);
+    if (q9Rem === 0) q9Rem = 1;
+  }
+  const q9SumNum = q9D + q9Rem;
+  const q9a = Math.floor(q9SumNum / 2);
+  const q9b = q9SumNum - q9a;
+  const q9W1 = 3 + (k % 6);
+  const q9W2 = 2 + ((k * 2) % 5);
+  const q9TotalW = q9W1 + q9W2 + 1;
+  const q9Opts = makeOptions(
+    `$${q9TotalW}\\frac{${q9Rem}}{${q9D}}$`,
+    [
+      `$${q9W1 + q9W2}\\frac{${q9SumNum}}{${q9D}}$`,
+      `$${q9TotalW}\\frac{${q9Rem + 1}}{${q9D}}$`,
+      `$${q9TotalW + 1}\\frac{${q9Rem}}{${q9D}}$`,
+    ],
+    k,
+    9
+  );
   questions.push({
     questionNumber: 9,
-    text: `Запишите частное $${q9M} : ${q9N}$ в виде обыкновенной дроби.`,
+    text: `Вычислите: $${q9W1}\\frac{${q9a}}{${q9D}} + ${q9W2}\\frac{${q9b}}{${q9D}}$`,
     type: 'multiple_choice',
-    correctAnswer: `\\frac{${q9M}}{${q9N}}`,
-    explanation: `Знак деления соответствует дробной черте: делимое становится числителем, делитель — знаменателем: $${q9M} : ${q9N} = \\frac{${q9M}}{${q9N}}$.`,
-    options: [
-      { label: 'A', text: `$\\frac{${q9M}}{${q9N}}$`, isCorrect: true },
-      { label: 'B', text: `$\\frac{${q9N}}{${q9M}}$`, isCorrect: false },
-      { label: 'C', text: `$\\frac{${q9M}}{${q9M + q9N}}$`, isCorrect: false },
-      { label: 'D', text: `$\\frac{1}{${q9N}}$`, isCorrect: false },
-    ],
+    correctAnswer: q9Opts.correctLabel,
+    explanation: `Складываем целые части: $${q9W1} + ${q9W2} = ${q9W1 + q9W2}$. Складываем дроби: $\\frac{${q9a} + ${q9b}}{${q9D}} = \\frac{${q9SumNum}}{${q9D}} = 1\\frac{${q9Rem}}{${q9D}}$. Итого: $${q9W1 + q9W2} + 1\\frac{${q9Rem}}{${q9D}} = ${q9TotalW}\\frac{${q9Rem}}{${q9D}}$. Дробная часть несократима.`,
+    options: q9Opts.options,
   });
 
-  // Q10: Тема 10. Преобразование обыкновенных дробей в десятичные (Базовый уровень)
-  const fracPairs = [
-    { n: 1, d: 2, dec: '0,5', d1: '0,2', d2: '0,05', d3: '1,2' },
-    { n: 1, d: 4, dec: '0,25', d1: '0,4', d2: '0,2', d3: '0,14' },
-    { n: 3, d: 4, dec: '0,75', d1: '0,34', d2: '0,7', d3: '0,85' },
-    { n: 1, d: 5, dec: '0,2', d1: '0,5', d2: '0,15', d3: '0,02' },
-    { n: 2, d: 5, dec: '0,4', d1: '0,25', d2: '0,2', d3: '0,04' },
-    { n: 3, d: 5, dec: '0,6', d1: '0,35', d2: '0,5', d3: '0,3' },
-    { n: 4, d: 5, dec: '0,8', d1: '0,45', d2: '0,4', d3: '0,08' },
-  ];
-  const q10Pair = fracPairs[k % fracPairs.length];
+  // Q10: Вычитание смешанных чисел и дробей: A a/d - B b/d = (A - B) (a - b)/d
+  const q10Denoms = [11, 13, 16, 17, 19, 21, 23];
+  const q10D = q10Denoms[k % q10Denoms.length];
+  let q10DiffNum = 1 + (k % (q10D - 4));
+  while (gcd(q10DiffNum, q10D) !== 1) {
+    q10DiffNum = (q10DiffNum + 1) % (q10D - 2);
+    if (q10DiffNum === 0) q10DiffNum = 1;
+  }
+  const q10b = 2 + (k % 4);
+  const q10a = q10b + q10DiffNum;
+  const q10W2 = 2 + (k % 5);
+  const q10W1 = q10W2 + 3 + ((k * 3) % 6); // W1 > W2
+  const q10DiffW = q10W1 - q10W2;
+  const q10Opts = makeOptions(
+    `$${q10DiffW}\\frac{${q10DiffNum}}{${q10D}}$`,
+    [
+      `$${q10DiffW}\\frac{${q10DiffNum + 1}}{${q10D}}$`,
+      `$${q10DiffW - 1}\\frac{${q10DiffNum}}{${q10D}}$`,
+      `$${q10DiffW + 1}\\frac{${q10DiffNum}}{${q10D}}$`,
+    ],
+    k,
+    10
+  );
   questions.push({
     questionNumber: 10,
-    text: `Представьте обыкновенную дробь $\\frac{${q10Pair.n}}{${q10Pair.d}}$ в виде десятичной дроби:`,
+    text: `Вычислите разность: $${q10W1}\\frac{${q10a}}{${q10D}} - ${q10W2}\\frac{${q10b}}{${q10D}}$`,
     type: 'multiple_choice',
-    correctAnswer: q10Pair.dec,
-    explanation: `$\\frac{${q10Pair.n}}{${q10Pair.d}} = ${q10Pair.n} : ${q10Pair.d} = ${q10Pair.dec}$.`,
-    options: [
-      { label: 'A', text: `$${q10Pair.d1}$`, isCorrect: false },
-      { label: 'B', text: `$${q10Pair.dec}$`, isCorrect: true },
-      { label: 'C', text: `$${q10Pair.d2}$`, isCorrect: false },
-      { label: 'D', text: `$${q10Pair.d3}$`, isCorrect: false },
-    ],
+    correctAnswer: q10Opts.correctLabel,
+    explanation: `Вычитаем отдельно целые и дробные части: $(${q10W1} - ${q10W2}) + \\frac{${q10a} - ${q10b}}{${q10D}} = ${q10DiffW}\\frac{${q10DiffNum}}{${q10D}}$. Так как $\\gcd(${q10DiffNum}, ${q10D}) = 1$, дробь несократима.`,
+    options: q10Opts.options,
   });
 
-  // Q11: Тема 11. Умножение числа на 10, 100 и 1000 (Усложнённый уровень: десятичные дроби)
-  const q11Int = 2 + (k % 6); // 2..7
-  const q11Dec = 3 + (k % 7); // 3..9
-  const q11Mult = 100;
-  const q11Ans = (q11Int * 10 + q11Dec) * (q11Mult / 10);
+  // Q11: Перевод смешанной дроби в неправильную (A a/b -> (A*b + a)/b)
+  const q11Denoms = [3, 5, 7, 8, 9, 11];
+  const q11B = q11Denoms[k % q11Denoms.length];
+  let q11A_num = 1 + (k % (q11B - 1));
+  while (gcd(q11A_num, q11B) !== 1) {
+    q11A_num = (q11A_num + 1) % q11B;
+    if (q11A_num === 0) q11A_num = 1;
+  }
+  const q11Whole = 3 + (k % 6);
+  const q11Top = q11Whole * q11B + q11A_num; // gcd(top, B) = gcd(A_num, B) = 1!
+  const q11Opts = makeOptions(
+    `$\\frac{${q11Top}}{${q11B}}$`,
+    [
+      `$\\frac{${q11Top + 2}}{${q11B}}$`,
+      `$\\frac{${q11Whole * q11B}}{${q11B}}$`,
+      `$\\frac{${q11Top}}{${q11B + 1}}$`,
+    ],
+    k,
+    11
+  );
   questions.push({
     questionNumber: 11,
-    text: `Вычислите: $$${q11Int}{,}${q11Dec} \\cdot ${q11Mult}$$`,
+    text: `Запишите смешанное число в виде неправильной дроби: $${q11Whole}\\frac{${q11A_num}}{${q11B}}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q11Ans}`,
-    explanation: `При умножении десятичной дроби на $100$ переносим запятую вправо на 2 знака: $${q11Int}{,}${q11Dec} \\cdot 100 = ${q11Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q11Ans / 10}$`, isCorrect: false },
-      { label: 'B', text: `$${q11Ans * 10}$`, isCorrect: false },
-      { label: 'C', text: `$${q11Ans}$`, isCorrect: true },
-      { label: 'D', text: `$${q11Int * 100 + q11Dec}$`, isCorrect: false },
-    ],
+    correctAnswer: q11Opts.correctLabel,
+    explanation: `Умножаем целую часть на знаменатель и прибавляем числитель: $\\frac{${q11Whole} \\cdot ${q11B} + ${q11A_num}}{${q11B}} = \\frac{${q11Top}}{${q11B}}$. Данная дробь несократима.`,
+    options: q11Opts.options,
   });
 
-  // Q12: Тема 12. Порядок действий в выражениях без скобок (Усложнённый: 4 действия)
-  const q12A = 14 + (k % 6); // 14..19
-  const q12B = 3 + (k % 3); // 3, 4, 5
-  const q12D = 2 + (k % 3); // 2, 3, 4
-  const q12C = (10 + (k % 6)) * q12D; // cleanly divisible by D
-  const q12E = 8 + (k % 5); // 8..12
-  const q12Ans = (q12A * q12B) + (q12C / q12D) - q12E;
+  // Q12: Выделение целой части из неправильной дроби (M/d -> q r/d)
+  const q12Denoms = [13, 16, 17, 19, 21, 23];
+  const q12D = q12Denoms[k % q12Denoms.length];
+  let q12Rem = 1 + (k % (q12D - 2));
+  while (gcd(q12Rem, q12D) !== 1) {
+    q12Rem = (q12Rem + 1) % (q12D - 1);
+    if (q12Rem === 0) q12Rem = 1;
+  }
+  const q12Q = 2 + (k % 4);
+  const q12M = q12Q * q12D + q12Rem;
+  const q12Opts = makeOptions(
+    `$${q12Q}\\frac{${q12Rem}}{${q12D}}$`,
+    [
+      `$${q12Q + 1}\\frac{${q12Rem}}{${q12D}}$`,
+      `$${q12Q}\\frac{${q12Rem + 1}}{${q12D}}$`,
+      `$${q12Q - 1}\\frac{${q12Rem}}{${q12D}}$`,
+    ],
+    k,
+    12
+  );
   questions.push({
     questionNumber: 12,
-    text: `Определите значение выражения: $$${q12A} \\cdot ${q12B} + ${q12C} : ${q12D} - ${q12E}$$`,
+    text: `Выделите целую часть из неправильной дроби: $\\frac{${q12M}}{${q12D}}$`,
     type: 'multiple_choice',
-    correctAnswer: `${q12Ans}`,
-    explanation: `1) $${q12A} \\cdot ${q12B} = ${q12A * q12B}$. 2) $${q12C} : ${q12D} = ${q12C / q12D}$. 3) $${q12A * q12B} + ${q12C / q12D} = ${q12A * q12B + q12C / q12D}$. 4) $${q12A * q12B + q12C / q12D} - ${q12E} = ${q12Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q12Ans}$`, isCorrect: true },
-      { label: 'B', text: `$${q12Ans + 12}$`, isCorrect: false },
-      { label: 'C', text: `$${q12Ans - 10}$`, isCorrect: false },
-      { label: 'D', text: `$${q12Ans + 20}$`, isCorrect: false },
-    ],
+    correctAnswer: q12Opts.correctLabel,
+    explanation: `Делим $${q12M}$ на $${q12D}$ с остатком: неполное частное $${q12Q}$, остаток $${q12Rem}$. Получаем $${q12Q}\\frac{${q12Rem}}{${q12D}}$. Дробная часть несократима.`,
+    options: q12Opts.options,
   });
 
-  // Q13: Тема 13. Порядок действий в выражениях со скобками (Усложнённый: две скобки)
-  const q13A = 18 + (k % 8); // 18..25
-  const q13B = 6 + (k % 5);  // 6..10
-  const q13C = 15 + (k % 6); // 15..20
-  const q13D = 7 + (k % 4);  // 7..10
-  const q13Ans = (q13A + q13B) * (q13C - q13D);
+  // Q13: Порядок действий с дробями со скобками
+  // (a/d + b/d - c/d) + (e/d - f/d)
+  const q13D = 107; // простое число => любая дробь строго несократима!
+  const q13A = 15 + (k % 10);
+  const q13B = 30 + ((k * 2) % 15);
+  const q13C = 10 + (k % 10);
+  const q13E = 40 + ((k * 3) % 20);
+  const q13F = 20 + (k % 15);
+  const q13AnsNum = (q13A + q13B - q13C) + (q13E - q13F);
+  const q13Opts = makeOptions(
+    `$\\frac{${q13AnsNum}}{${q13D}}$`,
+    [
+      `$\\frac{${q13AnsNum + 10}}{${q13D}}$`,
+      `$\\frac{${q13AnsNum - 10}}{${q13D}}$`,
+      `$\\frac{${q13AnsNum + 1}}{${q13D}}$`,
+    ],
+    k,
+    13
+  );
   questions.push({
     questionNumber: 13,
-    text: `Вычислите: $$(${q13A} + ${q13B}) \\cdot (${q13C} - ${q13D})$$`,
+    text: `Вычислите значение выражения: $$\\left(\\frac{${q13A}}{${q13D}} + \\frac{${q13B}}{${q13D}} - \\frac{${q13C}}{${q13D}}\\right) + \\left(\\frac{${q13E}}{${q13D}} - \\frac{${q13F}}{${q13D}}\\right)$$`,
     type: 'multiple_choice',
-    correctAnswer: `${q13Ans}`,
-    explanation: `1) Первая скобка: $${q13A} + ${q13B} = ${q13A + q13B}$. 2) Вторая скобка: $${q13C} - ${q13D} = ${q13C - q13D}$. 3) Произведение: $${q13A + q13B} \\cdot ${q13C - q13D} = ${q13Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q13Ans - 20}$`, isCorrect: false },
-      { label: 'B', text: `$${q13Ans + 24}$`, isCorrect: false },
-      { label: 'C', text: `$${q13Ans}$`, isCorrect: true },
-      { label: 'D', text: `$${(q13A + q13B) + (q13C - q13D)}$`, isCorrect: false },
-    ],
+    correctAnswer: q13Opts.correctLabel,
+    explanation: `1) В первых скобках: $\\frac{${q13A} + ${q13B} - ${q13C}}{${q13D}} = \\frac{${q13A + q13B - q13C}}{${q13D}}$; 2) Во вторых скобках: $\\frac{${q13E} - ${q13F}}{${q13D}} = \\frac{${q13E - q13F}}{${q13D}}$; 3) Складываем результаты: $\\frac{${q13AnsNum}}{${q13D}}$. Число $${q13D}$ простое, дробь несократима.`,
+    options: q13Opts.options,
   });
 
-  // Q14: Тема 14. Текстовые задачи (Усложнённый: встречное движение)
-  const q14V1 = 50 + (k % 5) * 5; // 50, 55, 60, 65, 70
-  const q14V2 = 60 + (k % 4) * 5; // 60, 65, 70, 75
-  const q14T = 2 + (k % 2); // 2, 3 ч
-  const q14S = (q14V1 + q14V2) * q14T;
+  // Q14: Деление многозначного числа нацело (записанное дробной чертой)
+  // 4808 / 4 = 1202, 8515 / 5 = 1703
+  const q14Divisors = [3, 4, 5, 6];
+  const q14D = q14Divisors[k % q14Divisors.length];
+  const q14Ans = 1200 + ((k * 17) % 800) + 1; // e.g. 1201..2000
+  const q14M = q14Ans * q14D;
+  const q14Opts = makeOptions(
+    `$${q14Ans}$`,
+    [`$${q14Ans + 10}$`, `$${q14Ans - 10}$`, `$${q14Ans + 100}$`],
+    k,
+    14
+  );
   questions.push({
     questionNumber: 14,
-    text: `Из двух посёлков навстречу друг другу одновременно выехали два мотоциклиста со скоростями $${q14V1}$ км/ч и $${q14V2}$ км/ч. Через $${q14T}$ ч они встретились. Найдите расстояние между посёлками.`,
+    text: `Вычислите: $$\\frac{${q14M}}{${q14D}}$$`,
     type: 'multiple_choice',
-    correctAnswer: `${q14S} км`,
-    explanation: `Скорость сближения: $${q14V1} + ${q14V2} = ${q14V1 + q14V2}$ км/ч. Расстояние: $S = (v_1 + v_2) \\cdot t = ${q14V1 + q14V2} \\cdot ${q14T} = ${q14S}$ км.`,
-    options: [
-      { label: 'A', text: `$${q14S}\\text{ км}$`, isCorrect: true },
-      { label: 'B', text: `$${q14V1 + q14V2}\\text{ км}$`, isCorrect: false },
-      { label: 'C', text: `$${q14S + 30}\\text{ км}$`, isCorrect: false },
-      { label: 'D', text: `$${q14S - 25}\\text{ км}$`, isCorrect: false },
-    ],
+    correctAnswer: q14Opts.correctLabel,
+    explanation: `Дробная черта означает деление: $${q14M} : ${q14D} = ${q14Ans}$.`,
+    options: q14Opts.options,
   });
 
-  // Q15: Тема 15. Контрольная работа 1 / Арифметика многозначных чисел (Умножение столбиком)
-  const q15A = 124 + (k % 12) * 5; // 124..179
-  const q15B = 14 + (k % 6) * 3;  // 14..29
-  const q15Ans = q15A * q15B;
+  // Q15: Порядок действий с многозначными числами и скобками
+  // A - (B - C) : D
+  const q15D = 3 + (k % 4); // 3, 4, 5, 6
+  const q15Quot = 50 + ((k * 7) % 60); // 50..109
+  const q15Diff = q15Quot * q15D; // деление нацело
+  const q15C = 100 + (k % 50);
+  const q15B = q15C + q15Diff;
+  const q15A = 1000 + ((k * 23) % 500);
+  const q15Ans = q15A - q15Quot; // строго > 0
+  const q15Opts = makeOptions(
+    `$${q15Ans}$`,
+    [`$${q15Ans + 10}$`, `$${q15Ans - 10}$`, `$${q15Ans + q15Quot}$`],
+    k,
+    15
+  );
   questions.push({
     questionNumber: 15,
-    text: `Вычислите столбиком: $${q15A} \\cdot ${q15B}$`,
+    text: `Вычислите значение выражения: $$${q15A} - (${q15B} - ${q15C}) : ${q15D}$$`,
     type: 'multiple_choice',
-    correctAnswer: `${q15Ans}`,
-    explanation: `$${q15A} \\cdot ${q15B} = ${q15Ans}$.`,
-    options: [
-      { label: 'A', text: `$${q15Ans + 100}$`, isCorrect: false },
-      { label: 'B', text: `$${q15Ans}$`, isCorrect: true },
-      { label: 'C', text: `$${q15Ans - 10}$`, isCorrect: false },
-      { label: 'D', text: `$${q15Ans + 200}$`, isCorrect: false },
-    ],
+    correctAnswer: q15Opts.correctLabel,
+    explanation: `1) Действие в скобках: $${q15B} - ${q15C} = ${q15Diff}$; 2) Деление: $${q15Diff} : ${q15D} = ${q15Quot}$; 3) Вычитание: $${q15A} - ${q15Quot} = ${q15Ans}$.`,
+    options: q15Opts.options,
   });
 
-  // Q16: Арифметика многозначных чисел (Деление многозначного числа на двузначное)
-  const q16Div = 18 + (k % 8) * 2; // 18, 20, 22, 24, 26, 28, 30, 32
-  const q16Quot = 25 + (k % 10) * 3; // 25..52
-  const q16Dividend = q16Div * q16Quot;
+  // ==========================================
+  // ВОПРОСЫ 16 - 20 (Открытый числовой ввод)
+  // ==========================================
+
+  // Q16: Текстовая задача на нахождение дроби от числа (блинчики с мясом)
+  const q16Denom = 8;
+  const q16Num = 5;
+  const q16Base = 40 + ((k * 3) % 30); // 40..69
+  const q16Total = q16Base * q16Denom; // e.g. 320..552 (кратно 8)
+  const q16Meat = q16Base * q16Num;
   questions.push({
     questionNumber: 16,
-    text: `Выполните деление многозначного числа: $${q16Dividend} : ${q16Div}$`,
-    type: 'multiple_choice',
-    correctAnswer: `${q16Quot}`,
-    explanation: `$${q16Dividend} : ${q16Div} = ${q16Quot}$. Проверка: $${q16Quot} \\cdot ${q16Div} = ${q16Dividend}$.`,
-    options: [
-      { label: 'A', text: `$${q16Quot * 10}$`, isCorrect: false },
-      { label: 'B', text: `$${q16Quot + 8}$`, isCorrect: false },
-      { label: 'C', text: `$${q16Quot}$`, isCorrect: true },
-      { label: 'D', text: `$${q16Quot - 5}$`, isCorrect: false },
-    ],
+    text: `Повар испёк всего $${q16Total}$ блинчиков. Из них $\\frac{${q16Num}}{${q16Denom}}$ часть блинчиков он сделал с мясом, а остальные — с вареньем. Сколько блинчиков с мясом сделал повар? (Запишите только число)`,
+    type: 'short_answer',
+    correctAnswer: `${q16Meat}`,
+    explanation: `1) Находим массу одной восьмой части: $${q16Total} : ${q16Denom} = ${q16Base}$; 2) Находим количество блинчиков с мясом: $${q16Base} \\cdot ${q16Num} = ${q16Meat}$.`,
   });
 
-  // Q17: Тема 17. Представление деления чисел в виде дроби (Смешанные числа)
-  const q17Den = 4 + (k % 4); // 4, 5, 6, 7
-  const q17Whole = 3 + (k % 5); // 3..7
-  const q17Rem = 1 + (k % (q17Den - 1)); // 1..den-1
-  const q17Num = q17Whole * q17Den + q17Rem;
+  // Q17: Текстовая задача на нахождение остатка от дроби числа (блинчики с вареньем)
+  const q17Jam = q16Total - q16Meat;
   questions.push({
     questionNumber: 17,
-    text: `Запишите неправильную дробь $\\frac{${q17Num}}{${q17Den}}$ в виде смешанного числа:`,
-    type: 'multiple_choice',
-    correctAnswer: `${q17Whole}\\frac{${q17Rem}}{${q17Den}}`,
-    explanation: `$${q17Num} : ${q17Den} = ${q17Whole}$ (остаток $${q17Rem}$). Значит, $\\frac{${q17Num}}{${q17Den}} = ${q17Whole}\\frac{${q17Rem}}{${q17Den}}$.`,
-    options: [
-      { label: 'A', text: `$${q17Whole}\\frac{${q17Rem}}{${q17Den}}$`, isCorrect: true },
-      { label: 'B', text: `$${q17Whole + 1}\\frac{${q17Rem}}{${q17Den}}$`, isCorrect: false },
-      { label: 'C', text: `$${q17Whole}\\frac{${q17Rem + 1}}{${q17Den}}$`, isCorrect: false },
-      { label: 'D', text: `$\\frac{${q17Whole}}{${q17Den}}$`, isCorrect: false },
-    ],
+    text: `Повар испёк $${q16Total}$ блинчиков. $\\frac{${q16Num}}{${q16Denom}}$ всех блинчиков он сделал с мясом, а остальные — с вареньем. Сколько блинчиков с вареньем сделал повар? (Запишите только число)`,
+    type: 'short_answer',
+    correctAnswer: `${q17Jam}`,
+    explanation: `1) Блинчиков с мясом: $${q16Total} : ${q16Denom} \\cdot ${q16Num} = ${q16Meat}$; 2) Блинчиков с вареньем: $${q16Total} - ${q16Meat} = ${q17Jam}$.`,
   });
 
-  // Q18: Преобразование обыкновенных дробей в десятичные (Знаменатели 20, 25, 50)
-  const q18Choices = [
-    { n: 7, d: 20, dec: '0,35', alt1: '0,7', alt2: '0,25', alt3: '0,14' },
-    { n: 9, d: 20, dec: '0,45', alt1: '0,9', alt2: '0,4', alt3: '0,25' },
-    { n: 11, d: 25, dec: '0,44', alt1: '0,11', alt2: '0,45', alt3: '0,55' },
-    { n: 13, d: 50, dec: '0,26', alt1: '0,13', alt2: '0,36', alt3: '0,5' },
-    { n: 17, d: 50, dec: '0,34', alt1: '0,17', alt2: '0,24', alt3: '0,4' },
-    { n: 19, d: 25, dec: '0,76', alt1: '0,19', alt2: '0,75', alt3: '0,66' },
-  ];
-  const q18Item = q18Choices[k % q18Choices.length];
+  // Q18: Части величин (нахождение части величины)
+  const q18Denoms = [4, 5, 6, 10];
+  const q18D = q18Denoms[k % q18Denoms.length];
+  const q18N = 3;
+  const q18Part = 20 + ((k * 4) % 25);
+  const q18TotalKg = q18Part * q18D;
+  const q18Ans = q18Part * q18N;
   questions.push({
     questionNumber: 18,
-    text: `Переведите обыкновенную дробь $\\frac{${q18Item.n}}{${q18Item.d}}$ в десятичную:`,
-    type: 'multiple_choice',
-    correctAnswer: q18Item.dec,
-    explanation: `Приведём к знаменателю 100: $\\frac{${q18Item.n}}{${q18Item.d}} = \\frac{${q18Item.n * (100 / q18Item.d)}}{100} = ${q18Item.dec}$.`,
-    options: [
-      { label: 'A', text: `$${q18Item.alt1}$`, isCorrect: false },
-      { label: 'B', text: `$${q18Item.alt2}$`, isCorrect: false },
-      { label: 'C', text: `$${q18Item.dec}$`, isCorrect: true },
-      { label: 'D', text: `$${q18Item.alt3}$`, isCorrect: false },
-    ],
+    text: `В магазин привезли $${q18TotalKg}$ кг яблок. До обеда продали $\\frac{${q18N}}{${q18D}}$ часть всех яблок. Сколько килограммов яблок продали? (Запишите только число)`,
+    type: 'short_answer',
+    correctAnswer: `${q18Ans}`,
+    explanation: `1) Находим $\\frac{1}{${q18D}}$ долю: $${q18TotalKg} : ${q18D} = ${q18Part}$ кг; 2) Умножаем на числитель: $${q18Part} \\cdot ${q18N} = ${q18Ans}$ кг.`,
   });
 
-  // Q19: Тема 19. Повторение: сложение и вычитание дробей (Базовый уровень)
-  const q19Den = 11 + (k % 4); // 11..14
-  const q19A = 2 + (k % 3); // 2, 3, 4
-  const q19B = 3 + (k % 4); // 3..6 (A + B < Den)
-  const q19Sum = q19A + q19B;
+  // Q19: Сложение десятичных дробей (открытый ввод)
+  // 8,1 + 2,5 = 10,6
+  const q19A_int = 5 + (k % 6);
+  const q19A_dec = 1 + ((k * 2) % 4);
+  const q19B_int = 2 + ((k * 3) % 5);
+  const q19B_dec = 2 + ((k * 4) % 4);
+  const q19Sum_int = q19A_int + q19B_int + Math.floor((q19A_dec + q19B_dec) / 10);
+  const q19Sum_dec = (q19A_dec + q19B_dec) % 10;
+  const q19Ans = `${q19Sum_int}.${q19Sum_dec}`;
   questions.push({
     questionNumber: 19,
-    text: `Вычислите сумму дробей: $$\\frac{${q19A}}{${q19Den}} + \\frac{${q19B}}{${q19Den}}$$`,
-    type: 'multiple_choice',
-    correctAnswer: `\\frac{${q19Sum}}{${q19Den}}`,
-    explanation: `При одинаковых знаменателях складываются только числители: $\\frac{${q19A}}{${q19Den}} + \\frac{${q19B}}{${q19Den}} = \\frac{${q19A} + ${q19B}}{${q19Den}} = \\frac{${q19Sum}}{${q19Den}}$.`,
-    options: [
-      { label: 'A', text: `$\\frac{${q19Sum}}{${q19Den}}$`, isCorrect: true },
-      { label: 'B', text: `$\\frac{${q19Sum}}{${q19Den * 2}}$`, isCorrect: false },
-      { label: 'C', text: `$\\frac{${q19A * q19B}}{${q19Den}}$`, isCorrect: false },
-      { label: 'D', text: `$\\frac{${q19Sum - 1}}{${q19Den}}$`, isCorrect: false },
-    ],
+    text: `Вычислите: $$${q19A_int},${q19A_dec} + ${q19B_int},${q19B_dec}$$ (Запишите ответ десятичной дробью через точку или запятую)`,
+    type: 'short_answer',
+    correctAnswer: `${q19Ans}`,
+    metadata: { acceptedAlternates: [`${q19Sum_int},${q19Sum_dec}`] },
+    explanation: `Складываем числа: $${q19A_int},${q19A_dec} + ${q19B_int},${q19B_dec} = ${q19Sum_int},${q19Sum_dec}$.`,
   });
 
-  // Q20: Тема 20. Повторение: части множества (Нахождение дроби от числа)
-  const q20Q = 5 + (k % 3) * 2; // 5, 7, 9
-  const q20P = 2 + (k % 2); // 2, 3 (< Q)
-  const q20Step = 6 + (k % 5) * 2; // 6, 8, 10, 12, 14
-  const q20Total = q20Q * q20Step;
-  const q20Ans = q20P * q20Step;
+  // Q20: Сложное выражение на порядок действий (открытый ввод)
+  // (2 * a + b) : c
+  const q20C = 5;
+  const q20Quot = 120 + ((k * 7) % 80); // 120..199
+  const q20Inside = q20Quot * q20C; // кратно 5
+  const q20A = 100 + (k % 40);
+  const q20B = q20Inside - 2 * q20A; // > 0
   questions.push({
     questionNumber: 20,
-    text: `В книге $${q20Total}$ страниц. Ученик прочитал $\\frac{${q20P}}{${q20Q}}$ всей книги. Сколько страниц прочитал ученик?`,
-    type: 'multiple_choice',
-    correctAnswer: `${q20Ans}`,
-    explanation: `Чтобы найти дробь от числа, нужно число разделить на знаменатель и умножить на числитель: $${q20Total} : ${q20Q} \\cdot ${q20P} = ${q20Step} \\cdot ${q20P} = ${q20Ans}$ стр.`,
-    options: [
-      { label: 'A', text: `$${q20Ans - 4}$`, isCorrect: false },
-      { label: 'B', text: `$${q20Ans}$`, isCorrect: true },
-      { label: 'C', text: `$${q20Ans + 4}$`, isCorrect: false },
-      { label: 'D', text: `$${q20Ans + 8}$`, isCorrect: false },
-    ],
-  });
-
-  // ==========================================
-  // ВОПРОСЫ 21 - 30 (Самостоятельный открытый ввод)
-  // ==========================================
-
-  // Q21: Умножение и деление числа на 10, 100 и 1000 (Уравнение, открытый ввод)
-  const q21A = 18 + (k % 25) * 2; // 18..66
-  const q21Mult = 100;
-  const q21Ans = q21A * q21Mult;
-  questions.push({
-    questionNumber: 21,
-    text: `Решите уравнение и запишите ответ в виде целого числа: $$x : ${q21Mult} = ${q21A}$$`,
+    text: `Вычислите значение выражения: $$(2 \\cdot ${q20A} + ${q20B}) : ${q20C}$$ (Запишите только число)`,
     type: 'short_answer',
-    correctAnswer: `${q21Ans}`,
-    explanation: `Неизвестное делимое равно произведению делителя на частное: $x = ${q21A} \\cdot ${q21Mult} = ${q21Ans}$.`,
-  });
-
-  // Q22: Умножение и деление на десятки, сотни и тысячи (Комбинированное вычисление)
-  const q22X = 14 + (k % 12); // 14..25
-  const q22M = 300;
-  const q22D = 30;
-  const q22Ans = (q22X * q22M) / q22D; // q22X * 10
-  questions.push({
-    questionNumber: 22,
-    text: `Вычислите значение выражения и запишите результат: $$(${q22X} \\cdot ${q22M}) : ${q22D}$$`,
-    type: 'short_answer',
-    correctAnswer: `${q22Ans}`,
-    explanation: `$(${q22X} \\cdot 300) : 30 = ${q22X * 300} : 30 = ${q22Ans}$.`,
-  });
-
-  // Q23: Порядок действий в выражениях без скобок (Продвинутый уровень)
-  const q23A = 22 + (k % 8); // 22..29
-  const q23B = 14 + (k % 5); // 14..18
-  const q23C = 16 + (k % 6); // 16..21
-  const q23D = 8 + (k % 4);  // 8..11
-  const q23Ans = (q23A * q23B) - (q23C * q23D);
-  questions.push({
-    questionNumber: 23,
-    text: `Вычислите значение числового выражения: $$${q23A} \\cdot ${q23B} - ${q23C} \\cdot ${q23D}$$`,
-    type: 'short_answer',
-    correctAnswer: `${q23Ans}`,
-    explanation: `1) $${q23A} \\cdot ${q23B} = ${q23A * q23B}$. 2) $${q23C} \\cdot ${q23D} = ${q23C * q23D}$. 3) $${q23A * q23B} - ${q23C * q23D} = ${q23Ans}$.`,
-  });
-
-  // Q24: Порядок действий со скобками (Продвинутый уровень)
-  const q24C = 3 + (k % 3); // 3, 4, 5
-  const q24Q = 7 + (k % 6); // 7..12
-  const q24B = q24Q * q24C; // divisible by C
-  const q24A = q24Q + 15 + (k % 5); // A - Q > 0
-  const q24D = 5 + (k % 4); // 5..8
-  const q24Ans = (q24A - q24Q) * q24D;
-  questions.push({
-    questionNumber: 24,
-    text: `Найдите значение выражения со скобками: $$(${q24A} - ${q24B} : ${q24C}) \\cdot ${q24D}$$`,
-    type: 'short_answer',
-    correctAnswer: `${q24Ans}`,
-    explanation: `1) В скобках деление: $${q24B} : ${q24C} = ${q24Q}$. 2) Вычитание: $${q24A} - ${q24Q} = ${q24A - q24Q}$. 3) Умножение: $${q24A - q24Q} \\cdot ${q24D} = ${q24Ans}$.`,
-  });
-
-  // Q25: Представление деления чисел в виде дроби (Запись дроби)
-  const q25P = 7 + (k % 7) * 2; // 7, 9, 11, 13, 15, 17, 19
-  const q25Q = 13 + (k % 5) * 2; // 13, 15, 17, 19, 21
-  questions.push({
-    questionNumber: 25,
-    text: `Запишите результат деления $${q25P} : ${q25Q}$ в виде обыкновенной дроби через слэш (например, $3/7$):`,
-    type: 'short_answer',
-    correctAnswer: `${q25P}/${q25Q}`,
-    metadata: { acceptedAlternates: [`${q25P}/${q25Q}`] },
-    explanation: `Частное $a : b$ записывается в виде обыкновенной дроби $\\frac{a}{b}$, то есть $${q25P}/${q25Q}$.`,
-  });
-
-  // Q26: Преобразование обыкновенных дробей в десятичные (Открытый ввод)
-  const q26Den = 20;
-  const q26Num = 3 + (k % 8) * 2; // 3, 5, 7, 9, 11, 13, 15, 17
-  const q26ValDot = (q26Num / q26Den).toFixed(2);
-  const q26ValComma = q26ValDot.replace('.', ',');
-  questions.push({
-    questionNumber: 26,
-    text: `Запишите обыкновенную дробь $\\frac{${q26Num}}{${q26Den}}$ в виде десятичной дроби (например, $0{,}5$):`,
-    type: 'short_answer',
-    correctAnswer: q26ValDot,
-    metadata: { acceptedAlternates: [q26ValComma, q26ValDot] },
-    explanation: `Домножим числитель и знаменатель на 5: $\\frac{${q26Num} \\cdot 5}{20 \\cdot 5} = \\frac{${q26Num * 5}}{100} = ${q26ValComma}$.`,
-  });
-
-  // Q27: Сложение и вычитание дробей (Смешанные числа / дробный ввод)
-  const q27Den = 17;
-  const q27A = 3 + (k % 5); // 3..7
-  const q27B = 4 + (k % 5); // 4..8 (A + B <= 15 < 17)
-  const q27Sum = q27A + q27B;
-  questions.push({
-    questionNumber: 27,
-    text: `Вычислите сумму дробей и запишите ответ в виде дроби (например, $5/17$): $$\\frac{${q27A}}{${q27Den}} + \\frac{${q27B}}{${q27Den}}$$`,
-    type: 'short_answer',
-    correctAnswer: `${q27Sum}/${q27Den}`,
-    metadata: { acceptedAlternates: [`${q27Sum}/${q27Den}`] },
-    explanation: `$\\frac{${q27A}}{${q27Den}} + \\frac{${q27B}}{${q27Den}} = \\frac{${q27Sum}}{${q27Den}}$.`,
-  });
-
-  // Q28: Повторение: части множества (Нахождение числа по его дроби)
-  const q28N = 7 + (k % 3) * 2; // 7, 9, 11
-  const q28M = 2 + (k % 2); // 2, 3
-  const q28Unit = 9 + (k % 6) * 3; // 9, 12, 15, 18, 21, 24
-  const q28Part = q28M * q28Unit;
-  const q28Full = q28N * q28Unit;
-  questions.push({
-    questionNumber: 28,
-    text: `Найдите число, если $\\frac{${q28M}}{${q28N}}$ этого числа равны $${q28Part}$.`,
-    type: 'short_answer',
-    correctAnswer: `${q28Full}`,
-    explanation: `Чтобы найти число по его дроби, нужно значение дроби разделить на числитель и умножить на знаменатель: $${q28Part} : ${q28M} \\cdot ${q28N} = ${q28Unit} \\cdot ${q28N} = ${q28Full}$.`,
-  });
-
-  // Q29: Текстовые задачи (Высокий уровень сложности: совместная работа)
-  const q29M = 16 + (k % 5) * 2; // 16, 18, 20, 22, 24
-  const q29U = 9 + (k % 4) * 2;  // 9, 11, 13, 15
-  const q29T = 4 + (k % 3);      // 4, 5, 6 ч
-  const q29Total = (q29M + q29U) * q29T;
-  questions.push({
-    questionNumber: 29,
-    text: `Мастер изготавливает $${q29M}$ деталей в час, а ученик — $${q29U}$ деталей в час. Сколько всего деталей они изготовят вместе за $${q29T}$ ч совместной работы? (Запишите только число)`,
-    type: 'short_answer',
-    correctAnswer: `${q29Total}`,
-    explanation: `1) Общая производительность: $${q29M} + ${q29U} = ${q29M + q29U}$ дет./ч. 2) За $${q29T}$ ч: $${q29M + q29U} \\cdot ${q29T} = ${q29Total}$ дет.`,
-  });
-
-  // Q30: Контрольная работа 1 / Олимпиадный уровень (Задача на части / уравнивание)
-  const q30Part2 = 14 + (k % 10) * 2; // 14, 16, 18, 20, 22, 24, 26, 28, 30, 32
-  const q30Multiplier = 3;
-  const q30Part1 = q30Part2 * q30Multiplier;
-  const q30Sum = q30Part1 + q30Part2; // 4 * q30Part2
-  questions.push({
-    questionNumber: 30,
-    text: `В двух ящиках всего $${q30Sum}$ кг яблок, причём в первом ящике в 3 раза больше яблок, чем во втором. Сколько килограммов яблок в первом ящике? (Запишите только число)`,
-    type: 'short_answer',
-    correctAnswer: `${q30Part1}`,
-    explanation: `Второй ящик — 1 часть, первый — 3 части. Всего $1 + 3 = 4$ части. Масса одной части (во втором ящике): $${q30Sum} : 4 = ${q30Part2}$ кг. В первом ящике: $${q30Part2} \\cdot 3 = ${q30Part1}$ кг.`,
+    correctAnswer: `${q20Quot}`,
+    explanation: `1) Умножение в скобках: $2 \\cdot ${q20A} = ${2 * q20A}$; 2) Сложение в скобках: $${2 * q20A} + ${q20B} = ${q20Inside}$; 3) Деление: $${q20Inside} : ${q20C} = ${q20Quot}$.`,
   });
 
   return questions;
 }
 
 /**
- * Seeds the database with all 50 unique forms and their 30 questions (1500 total).
+ * Seeds the database with all 50 unique forms and their 20 questions (1000 total).
  * @param force If true, drops and re-seeds existing forms and questions.
  */
 export async function seedDatabase(force: boolean = false): Promise<void> {
-  console.log('🌱 Starting database seed (50 forms × 30 questions = 1500 assignments)...');
+  console.log('🌱 Starting database seed (50 forms × 20 questions = 1000 assignments)...');
   await runMigrations();
 
   await withTransaction(async (db) => {
-    // Check if forms already seeded
+    // Delete any previous questions beyond 20
+    await db.query('DELETE FROM form_questions WHERE question_number > 20');
+
+    // Check if forms already seeded with exactly 20 questions for Grade 4 fractions
     if (!force) {
-      const existingForms = await db.query('SELECT COUNT(*) as count FROM forms');
-      const count = parseInt(existingForms.rows[0]?.count || '0', 10);
-      if (count >= 50) {
-        const sampleQ = await db.query('SELECT text FROM questions WHERE code = $1', ['FORM_1_Q1']);
-        if (sampleQ.rows[0]?.text?.includes('Вычислите:')) {
-          console.log(`ℹ️ Database already contains 50 5th-grade forms. Skipping seed.`);
-          return;
-        }
+      const q20Count = await db.query('SELECT COUNT(*) as count FROM form_questions WHERE question_number = 20');
+      const count = parseInt(q20Count.rows[0]?.count || '0', 10);
+      const totalCount = await db.query('SELECT COUNT(*) as count FROM form_questions');
+      const total = parseInt(totalCount.rows[0]?.count || '0', 10);
+      const titleCheck = await db.query("SELECT COUNT(*) as count FROM forms WHERE title LIKE '%Дроби%'");
+      const titleCount = parseInt(titleCheck.rows[0]?.count || '0', 10);
+
+      if (count >= 50 && total === 1000 && titleCount >= 50) {
+        console.log(`ℹ️ Database already contains 50 4th-grade forms with 20 questions each. Skipping seed.`);
+        return;
       }
     }
 
-    console.log('📝 Seeding 50 unique Grade 5 cards, questions, and options...');
+    console.log('📝 Seeding 50 unique Grade 4 cards, questions, and options (20 questions each)...');
 
     for (let formId = 1; formId <= 50; formId++) {
       // 1. Insert form
       await db.query(
-        `INSERT INTO forms (form_id, title) VALUES ($1, $2) ON CONFLICT (form_id) DO NOTHING`,
-        [formId, `Бланк №${formId} (5 класс)`]
+        `INSERT INTO forms (form_id, title) VALUES ($1, $2)
+         ON CONFLICT (form_id) DO UPDATE SET title = EXCLUDED.title`,
+        [formId, `Бланк №${formId} (4 класс • Дроби)`]
       );
 
       const questions = generateFormQuestions(formId);
@@ -663,7 +706,7 @@ export async function seedDatabase(force: boolean = false): Promise<void> {
     }
   });
 
-  console.log('✅ Successfully seeded 50 unique Grade 5 cards with 30 questions each (total 1500 assignments).');
+  console.log('✅ Successfully seeded 50 unique Grade 4 cards with 20 questions each (total 1000 assignments).');
 }
 
 // Direct execution

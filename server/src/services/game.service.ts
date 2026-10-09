@@ -414,7 +414,7 @@ export class GameService {
       const scoreReport = ScoringService.calculateReport(
         s.student_id,
         s.form_id,
-        30,
+        20,
         studentAnswers
       );
 
@@ -483,23 +483,21 @@ export class GameService {
       };
     }
 
-    // Determine current active question (first unanswered, or 30 if all answered)
+    // Determine current active question (first unanswered, or 20 if all answered)
     let currentQuestionNumber = 1;
-    for (let i = 1; i <= 30; i++) {
+    for (let i = 1; i <= 20; i++) {
       if (!answeredMap[i]) {
         currentQuestionNumber = i;
         break;
       }
     }
-    if (answeredRes.rows.length >= 30) {
-      currentQuestionNumber = 30;
+    if (answeredRes.rows.length >= 20) {
+      currentQuestionNumber = 20;
     }
 
-    // Load question definition for current question
-    const currentQuestion = await QuestionService.getQuestionForStudent(
-      student.form_id,
-      currentQuestionNumber
-    );
+    // Load all question definitions for student
+    const questions = await QuestionService.getAllQuestionsForStudent(student.form_id);
+    const currentQuestion = questions.find((q) => q.questionNumber === currentQuestionNumber) || null;
 
     // If game or student finished, return final score report
     let scoreReport = undefined;
@@ -511,7 +509,7 @@ export class GameService {
       scoreReport = ScoringService.calculateReport(
         student.student_id,
         student.form_id,
-        30,
+        20,
         fullAnswersRes.rows.map((r) => ({ isCorrect: r.is_correct === true, points: r.points || 0 }))
       );
     }
@@ -534,9 +532,10 @@ export class GameService {
       },
       currentQuestionNumber,
       currentQuestion,
+      questions,
       answeredMap,
       answeredCount: answeredRes.rows.length,
-      totalQuestions: 30,
+      totalQuestions: 20,
       scoreReport, // Only populated when finished
     };
   }

@@ -6,6 +6,7 @@ import { StudentQuiz } from './pages/StudentQuiz.js';
 import { StudentResult } from './pages/StudentResult.js';
 import { TeacherDashboard } from './pages/TeacherDashboard.js';
 import { TeacherImport } from './pages/TeacherImport.js';
+import { TeacherAuthModal } from './components/TeacherAuthModal.js';
 import { useSocket } from './hooks/useSocket.js';
 import { JoinGameResponse, StudentStateResponse, api } from './services/api.js';
 
@@ -15,7 +16,44 @@ export const App: React.FC = () => {
   const [view, setView] = useState<ViewMode>('home');
   const [studentData, setStudentData] = useState<JoinGameResponse | null>(null);
   const [studentState, setStudentState] = useState<StudentStateResponse | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [targetAuthView, setTargetAuthView] = useState<'teacher' | 'import'>('teacher');
+  const [isProctorPreview, setIsProctorPreview] = useState(false);
+  const [proctorReturnView, setProctorReturnView] = useState<'teacher' | 'import'>('teacher');
   const { socket } = useSocket();
+
+  const clearStudentSession = () => {
+    localStorage.removeItem('student_session_token');
+    localStorage.removeItem('student_game_code');
+    localStorage.removeItem('student_game_id');
+    localStorage.removeItem('student_id');
+    localStorage.removeItem('student_form_id');
+    localStorage.removeItem('student_first_name');
+    localStorage.removeItem('student_last_name');
+    setStudentData(null);
+    setStudentState(null);
+  };
+
+  // Launch proctor preview mode for variant 1..50
+  const handleStartProctorPreview = async (formId: number = 1, returnTo: 'teacher' | 'import' = 'teacher') => {
+    try {
+      const previewData = await api.startProctorPreview(formId);
+      setStudentData(previewData);
+      setIsProctorPreview(true);
+      setProctorReturnView(returnTo);
+      setView('student_quiz');
+    } catch (err: any) {
+      alert(err.message || 'Ошибка запуска предпросмотра теста');
+    }
+  };
+
+  // Exit proctor preview mode
+  const handleExitProctorPreview = () => {
+    setIsProctorPreview(false);
+    setStudentData(null);
+    setStudentState(null);
+    setView(proctorReturnView);
+  };
 
   // Check saved session on initial load
   useEffect(() => {
@@ -28,6 +66,12 @@ export const App: React.FC = () => {
       api
         .getStudentState(savedGameId, sId)
         .then((state) => {
+          // If the test was already finished, do not trap the student in the results screen on fresh app open!
+          if (state.gameStatus === 'FINISHED' || state.student.status === 'FINISHED') {
+            clearStudentSession();
+            return;
+          }
+
           setStudentState(state);
           setStudentData({
             isReconnection: true,
@@ -43,9 +87,7 @@ export const App: React.FC = () => {
             endsAt: state.endsAt,
           });
 
-          if (state.gameStatus === 'FINISHED' || state.student.status === 'FINISHED') {
-            setView('student_result');
-          } else if (state.gameStatus === 'IN_PROGRESS') {
+          if (state.gameStatus === 'IN_PROGRESS') {
             setView('student_quiz');
           } else {
             setView('student_waiting');
@@ -53,7 +95,7 @@ export const App: React.FC = () => {
         })
         .catch(() => {
           // Token expired or invalid
-          localStorage.removeItem('student_session_token');
+          clearStudentSession();
         });
     }
   }, []);
@@ -79,22 +121,47 @@ export const App: React.FC = () => {
     setView('student_result');
   };
 
+  const handleStartNewTest = () => {
+    clearStudentSession();
+    setView('student_join');
+  };
+
   // Reset to Home
   const handleResetHome = () => {
+    if (view === 'student_result' || studentState?.student?.status === 'FINISHED') {
+      clearStudentSession();
+    }
     setView('home');
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] font-sans">
       {view === 'home' && (
         <Home
           onSelectRole={(role) => {
-            if (role === 'student') setView('student_join');
-            else if (role === 'teacher') setView('teacher');
-            else if (role === 'import') setView('import');
+            if (role === 'student') {
+              setView('student_join');
+            } else if (role === 'teacher' || role === 'import') {
+              if (api.isTeacherAuthenticated()) {
+                setView(role);
+              } else {
+                setTargetAuthView(role);
+                setShowAuthModal(true);
+              }
+            }
           }}
         />
       )}
+
+      {/* Proctor Authentication Gate Modal */}
+      <TeacherAuthModal
+        isOpen={showAuthModal}
+        onSuccess={() => {
+          setShowAuthModal(false);
+          setView(targetAuthView);
+        }}
+        onCancel={() => setShowAuthModal(false)}
+      />
 
       {view === 'student_join' && (
         <StudentJoin
@@ -117,6 +184,8 @@ export const App: React.FC = () => {
           studentId={studentData.studentId}
           socket={socket}
           onFinished={handleTestFinished}
+          isProctorPreview={isProctorPreview}
+          onExitPreview={handleExitProctorPreview}
         />
       )}
 
@@ -124,6 +193,9 @@ export const App: React.FC = () => {
         <StudentResult
           state={studentState}
           onHome={handleResetHome}
+          onNewTest={handleStartNewTest}
+          isProctorPreview={isProctorPreview}
+          onExitPreview={handleExitProctorPreview}
         />
       )}
 
@@ -131,12 +203,15 @@ export const App: React.FC = () => {
         <TeacherDashboard
           socket={socket}
           onBack={handleResetHome}
+          onOpenImport={() => setView('import')}
+          onStartProctorPreview={(formId) => handleStartProctorPreview(formId, 'teacher')}
         />
       )}
 
       {view === 'import' && (
         <TeacherImport
-          onBack={handleResetHome}
+          onBack={() => setView('teacher')}
+          onStartProctorPreview={(formId) => handleStartProctorPreview(formId, 'import')}
         />
       )}
     </div>

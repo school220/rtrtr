@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import { PGlite } from '@electric-sql/pglite';
 import path from 'path';
+import fs from 'fs';
 import { config } from '../config.js';
 
 export interface QueryResult<T = any> {
@@ -49,10 +50,19 @@ export async function getDb(): Promise<DbClient> {
 
   // Fallback to PGlite (embedded Postgres engine)
   if (!pgliteInstance) {
-    if (config.databaseUrl === 'memory://') {
+    if (config.databaseUrl === 'memory://' || process.env.NODE_ENV === 'test' || process.env.VITEST) {
       pgliteInstance = new PGlite();
     } else {
-      const dataDir = path.resolve(process.cwd(), '.pgdata');
+      const rootDir = process.cwd().endsWith('server') ? path.dirname(process.cwd()) : process.cwd();
+      const dataDir = path.resolve(rootDir, '.pgdata');
+      try {
+        const pidFile = path.join(dataDir, 'postmaster.pid');
+        if (fs.existsSync(pidFile)) {
+          fs.unlinkSync(pidFile);
+        }
+      } catch {
+        // ignore
+      }
       pgliteInstance = new PGlite(dataDir);
     }
   }

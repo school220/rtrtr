@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: #f4f6f9;
+  color: #222d32;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -53,6 +53,20 @@ input, textarea {
   font-size: 1.15em;
   max-width: 100%;
   white-space: normal;
+}
+
+/* Explicitly hide any MathML duplicate text */
+.katex-mathml {
+  display: none !important;
+}
+
+/* Utility to hide scrollbar on mobile ribbons */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom scrollbars */

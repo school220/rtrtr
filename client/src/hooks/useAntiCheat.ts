@@ -198,7 +198,25 @@ export function useAntiCheat({
     };
 
     // 4. Fullscreen State Monitoring
+    const isFullscreenSupported = () => {
+      const doc = document as any;
+      const el = document.documentElement as any;
+      return !!(
+        doc.fullscreenEnabled ||
+        doc.webkitFullscreenEnabled ||
+        doc.mozFullScreenEnabled ||
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.mozRequestFullScreen
+      );
+    };
+
     const checkFullscreenState = () => {
+      if (!isFullscreenSupported()) {
+        setIsFullscreen(true);
+        return;
+      }
+
       const fs = !!(
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||

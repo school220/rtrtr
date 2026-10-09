@@ -1,12 +1,162 @@
 import { Router, Request, Response } from 'express';
 import { Server } from 'socket.io';
+import { v4 as uuidv4 } from 'uuid';
+import { config } from '../config.js';
 import { GameService } from '../services/game.service.js';
 import { AnswerService } from '../services/answer.service.js';
 import { QuestionService } from '../services/question.service.js';
 import { EventService } from '../services/event.service.js';
+import { getDb } from '../db/index.js';
+
+// In-memory set of authenticated proctor session tokens
+const activeTeacherTokens = new Set<string>();
 
 export function createApiRouter(io: Server): Router {
   const router = Router();
+
+  // 0. Teacher authentication endpoints
+  router.post('/teacher/login', (req: Request, res: Response): void => {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      res.status(400).json({ error: 'Необходимо указать логин и пароль' });
+      return;
+    }
+
+    const expectedUser = config.teacherAuth.username;
+    const expectedPass = config.teacherAuth.password;
+
+    if (username === expectedUser && password === expectedPass) {
+      const token = `proctor_tok_${uuidv4()}`;
+      activeTeacherTokens.add(token);
+      res.json({
+        success: true,
+        token,
+        username: expectedUser,
+        role: 'COMMISSION_CHAIR',
+        message: 'Авторизация председателя комиссии успешна',
+      });
+    } else {
+      res.status(401).json({ error: 'Неверный логин или пароль председателя комиссии' });
+    }
+  });
+
+  router.get('/teacher/verify', (req: Request, res: Response): void => {
+    const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+    if (token && activeTeacherTokens.has(token)) {
+      res.json({ valid: true, username: config.teacherAuth.username });
+    } else {
+      res.status(401).json({ valid: false, error: 'Сессия истекла или недействительна' });
+    }
+  });
+
+  router.post('/teacher/logout', (req: Request, res: Response): void => {
+    const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    if (token) {
+      activeTeacherTokens.delete(token);
+    }
+    res.json({ success: true });
+  });
+
+  // Proctor Preview Mode: creates an active authentic test session for proctor/teacher
+  router.post('/teacher/preview-session', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+      if (token && !activeTeacherTokens.has(token)) {
+        res.status(401).json({ error: 'Недействительный токен председателя комиссии' });
+        return;
+      }
+
+      const formId = Math.min(Math.max(parseInt(req.body?.formId || 1, 10), 1), 50);
+      const db = await getDb();
+      const gameId = uuidv4();
+      const code = 'PRK' + Math.floor(100 + Math.random() * 900);
+      const duration = 1200; // 20 minutes
+      const now = new Date();
+      const endsAt = new Date(now.getTime() + duration * 1000);
+
+      // Create preview game in IN_PROGRESS state
+      await db.query(
+        `INSERT INTO games (id, code, title, status, total_time_seconds, started_at, ends_at, max_students, created_at)
+         VALUES ($1, $2, $3, 'IN_PROGRESS', $4, $5, $6, 50, CURRENT_TIMESTAMP)`,
+        [gameId, code, `Проверка варианта №${formId} (Проктор)`, duration, now.toISOString(), endsAt.toISOString()]
+      );
+
+      // Create proctor student participant
+      const studentId = 99;
+      const sessionToken = `prk_sess_${uuidv4()}`;
+      await db.query(
+        `INSERT INTO students (game_id, student_id, form_id, first_name, last_name, session_token, status, is_online, joined_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'IN_PROGRESS', TRUE, CURRENT_TIMESTAMP)`,
+        [gameId, studentId, formId, 'Проктор', 'Комиссия', sessionToken]
+      );
+
+      res.json({
+        isReconnection: false,
+        gameId,
+        gameCode: code,
+        gameStatus: 'IN_PROGRESS',
+        studentId,
+        formId,
+        firstName: 'Проктор',
+        lastName: 'Комиссия',
+        sessionToken,
+        status: 'IN_PROGRESS',
+        endsAt: endsAt.toISOString(),
+      });
+    } catch (err: any) {
+      console.error('Error creating proctor preview session:', err);
+      res.status(500).json({ error: err.message || 'Ошибка запуска предпросмотра теста' });
+    }
+  });
+
+  // List recent games for teacher dashboard (excluding private proctor preview rooms)
+  router.get('/games/recent', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const db = await getDb();
+      const resGames = await db.query(
+        `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
+                g.total_time_seconds,
+                COUNT(s.id)::int as student_count
+         FROM games g
+         LEFT JOIN students s ON s.game_id = g.id
+         WHERE g.code NOT LIKE 'PRK%'
+         GROUP BY g.id
+         ORDER BY g.created_at DESC
+         LIMIT 25`
+      );
+      res.json(resGames.rows);
+    } catch (err: any) {
+      console.error('Error fetching recent games:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get current active game (WAITING or IN_PROGRESS, excluding private proctor preview rooms)
+  router.get('/games/active', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const db = await getDb();
+      const resGame = await db.query(
+        `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
+                g.total_time_seconds,
+                COUNT(s.id)::int as student_count
+         FROM games g
+         LEFT JOIN students s ON s.game_id = g.id
+         WHERE g.status IN ('WAITING', 'IN_PROGRESS') AND g.code NOT LIKE 'PRK%'
+         GROUP BY g.id
+         ORDER BY g.created_at DESC
+         LIMIT 1`
+      );
+      res.json(resGame.rows[0] || null);
+    } catch (err: any) {
+      console.error('Error fetching active game:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // 1. Teacher creates game
   router.post('/games', async (req: Request, res: Response): Promise<void> => {
@@ -168,6 +318,19 @@ export function createApiRouter(io: Server): Router {
       const sId = parseInt(studentId, 10);
       const state = await GameService.getStudentState(gameId, sId);
       res.json(state);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // 7.1 Student retrieves all questions
+  router.get('/games/:gameId/student/:studentId/questions', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { gameId, studentId } = req.params;
+      const sId = parseInt(studentId, 10);
+      const state = await GameService.getStudentState(gameId, sId);
+      const questions = await QuestionService.getAllQuestionsForStudent(state.student.formId);
+      res.json(questions);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

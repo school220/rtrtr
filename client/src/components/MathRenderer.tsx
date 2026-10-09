@@ -23,7 +23,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ content, className =
       return katex.renderToString(latex.trim(), {
         displayMode: isBlock,
         throwOnError: false,
-        output: 'htmlAndMathml',
+        output: 'html',
       });
     } catch {
       return `<span class="text-rose-400 font-mono">${latex}</span>`;

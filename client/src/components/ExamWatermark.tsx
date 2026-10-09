@@ -28,7 +28,7 @@ export const ExamWatermark: React.FC<ExamWatermarkProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const watermarkText = `${studentName.toUpperCase()} • ID #${String(studentId).padStart(2, '0')} • ВАР. №${String(formId).padStart(2, '0')} • [${gameCode}] • ${timestamp}`;
+  const watermarkText = `HEMIS IMTIHON • ${studentName.toUpperCase()} • ID #${String(studentId).padStart(2, '0')} • VAR. №${String(formId).padStart(2, '0')} • [${gameCode}] • ${timestamp}`;
 
   // Grid of watermarks
   const rows = Array.from({ length: 8 });
@@ -37,10 +37,10 @@ export const ExamWatermark: React.FC<ExamWatermarkProps> = ({
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 pointer-events-none select-none z-30 overflow-hidden opacity-[0.045] dark:opacity-[0.06] flex flex-col justify-around rotate-[-15deg] scale-125"
+      className="fixed inset-0 pointer-events-none select-none z-30 overflow-hidden opacity-[0.05] flex flex-col justify-around rotate-[-15deg] scale-125"
     >
       {rows.map((_, rIdx) => (
-        <div key={rIdx} className="flex justify-around whitespace-nowrap text-xs font-mono font-bold tracking-widest text-slate-400">
+        <div key={rIdx} className="flex justify-around whitespace-nowrap text-xs font-mono font-bold tracking-widest text-gray-900">
           {cols.map((_, cIdx) => (
             <span key={cIdx} className="mx-8">
               {watermarkText}

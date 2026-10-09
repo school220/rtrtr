@@ -17,4 +17,9 @@ export const config = {
     grade2: parseInt(process.env.GRADE_2_MIN || '0', 10),
   },
   sessionSecret: process.env.SESSION_SECRET || 'dev_secret_key_testing_platform_2026',
+  teacherAuth: {
+    username: process.env.TEACHER_USERNAME || 'proctor_admin',
+    password: process.env.TEACHER_PASSWORD || 'Ex@m#2026$K9v!L8z',
+  },
 };
+
