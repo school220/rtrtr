@@ -15,6 +15,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Strict anti-copy and anti-selection enforcement */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Allow interaction and selection exclusively inside input elements */
+input, textarea {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Anti-Print / Anti-PDF export */
+@media print {
+  html, body {
+    display: none !important;
+    visibility: hidden !important;
+  }
 }
 
 /* Ensure math formulas never break layout or cause horizontal overflow */

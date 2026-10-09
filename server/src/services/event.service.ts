@@ -5,7 +5,10 @@ export type GameEventType =
   | 'STUDENT_RECONNECTED'
   | 'STUDENT_DISCONNECTED'
   | 'PAGE_HIDDEN'
+  | 'WINDOW_BLUR'
   | 'FULLSCREEN_EXIT'
+  | 'SCREENSHOT_ATTEMPT'
+  | 'CLIPBOARD_VIOLATION'
   | 'TEST_STARTED'
   | 'QUESTION_ANSWERED'
   | 'TEST_FINISHED'
@@ -55,11 +58,14 @@ export class EventService {
         summary[sid] = { pageHidden: 0, fullscreenExit: 0, disconnected: 0, totalSuspicious: 0 };
       }
       const cnt = parseInt(row.count, 10);
-      if (row.event_type === 'PAGE_HIDDEN') {
+      if (row.event_type === 'PAGE_HIDDEN' || row.event_type === 'WINDOW_BLUR') {
         summary[sid].pageHidden += cnt;
         summary[sid].totalSuspicious += cnt;
       } else if (row.event_type === 'FULLSCREEN_EXIT') {
         summary[sid].fullscreenExit += cnt;
+        summary[sid].totalSuspicious += cnt;
+      } else if (row.event_type === 'SCREENSHOT_ATTEMPT' || row.event_type === 'CLIPBOARD_VIOLATION') {
+        summary[sid].pageHidden += cnt;
         summary[sid].totalSuspicious += cnt;
       } else if (row.event_type === 'STUDENT_DISCONNECTED') {
         summary[sid].disconnected += cnt;

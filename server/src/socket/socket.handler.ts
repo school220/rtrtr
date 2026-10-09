@@ -59,7 +59,7 @@ export function setupSocketHandlers(io: Server) {
     socket.on('student:security_event', async (data: {
       gameId: string;
       studentId: number;
-      eventType: 'PAGE_HIDDEN' | 'FULLSCREEN_EXIT';
+      eventType: string;
       metadata?: Record<string, any>;
     }) => {
       if (!data.gameId || !data.studentId) return;
