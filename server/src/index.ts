@@ -11,6 +11,7 @@ import { importRouter } from './routes/import.routes.js';
 import { setupSocketHandlers } from './socket/socket.handler.js';
 import { runMigrations } from './db/migrate.js';
 import { seedDatabase } from './db/seed.js';
+import { userTracker } from './utils/user-tracker.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -82,7 +83,15 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`📡 URL: http://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${config.port}`);
         console.log(`⏱️ Default test duration: ${config.testDurationSeconds} seconds (${config.testDurationSeconds / 60} mins)`);
         console.log(`👥 Max capacity per game: ${config.maxStudentsPerGame} students`);
+        console.log(`👥 Мониторинг онлайн-пользователей в консоли активен.`);
         console.log(`======================================================\n`);
+
+        // Periodic live console summary table (every 25 seconds if users are online)
+        setInterval(() => {
+          if (userTracker.getTotalOnline() > 0) {
+            userTracker.printRosterTable();
+          }
+        }, 25000);
       });
     } catch (err) {
       console.error('❌ Server startup error:', err);

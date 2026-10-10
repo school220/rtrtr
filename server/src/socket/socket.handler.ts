@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { getDb } from '../db/index.js';
 import { EventService } from '../services/event.service.js';
 import { GameService } from '../services/game.service.js';
+import { userTracker } from '../utils/user-tracker.js';
 
 let timerTickerInterval: NodeJS.Timeout | null = null;
 
@@ -69,6 +70,9 @@ export function setupSocketHandlers(io: Server) {
     let attachedStudentId: number | null = null;
     let isTeacher = false;
 
+    // Track active connection and log to server console
+    userTracker.onConnection(socket.id, socket.handshake.address || '');
+
     // 0. Millisecond-precision clock synchronization (NTP Cristian's algorithm)
     socket.on('time:ping', (data: { clientTimestamp: number }) => {
       socket.emit('time:pong', {
@@ -87,6 +91,8 @@ export function setupSocketHandlers(io: Server) {
       try {
         const dashboard = await GameService.getTeacherDashboardData(data.gameId);
         socket.emit('teacher:dashboard_update', dashboard);
+
+        userTracker.registerTeacher(socket.id, data.gameId, dashboard?.game?.code);
 
         // Also emit immediate timer state if active
         if (dashboard?.game?.status === 'IN_PROGRESS' && dashboard.game.ends_at) {
@@ -130,9 +136,32 @@ export function setupSocketHandlers(io: Server) {
       getDb()
         .then(async (db) => {
           const gameRes = await db.query(
-            `SELECT ends_at, total_time_seconds, status FROM games WHERE id = $1`,
+            `SELECT ends_at, total_time_seconds, status, code FROM games WHERE id = $1`,
             [data.gameId]
           );
+
+          // Retrieve student details for server console logging
+          const studentRes = await db.query(
+            `SELECT student_id, first_name, last_name, form_id
+             FROM students
+             WHERE game_id = $1 AND student_id = $2`,
+            [data.gameId, data.studentId]
+          );
+
+          if (studentRes.rows.length > 0) {
+            const st = studentRes.rows[0];
+            userTracker.registerStudent({
+              socketId: socket.id,
+              studentId: st.student_id,
+              firstName: st.first_name,
+              lastName: st.last_name,
+              formId: st.form_id,
+              gameId: data.gameId,
+              gameCode: gameRes.rows[0]?.code,
+              ip: socket.handshake.address || '',
+            });
+          }
+
           if (gameRes.rows.length > 0 && gameRes.rows[0].status === 'IN_PROGRESS' && gameRes.rows[0].ends_at) {
             const remainingSeconds = Math.max(
               0,
@@ -185,6 +214,7 @@ export function setupSocketHandlers(io: Server) {
 
     // 4. Handle Disconnection
     socket.on('disconnect', async () => {
+      userTracker.onDisconnect(socket.id);
       if (attachedGameId && attachedStudentId && !isTeacher) {
         try {
           const db = await getDb();

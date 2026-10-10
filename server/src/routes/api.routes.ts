@@ -272,6 +272,10 @@ export function createApiRouter(io: Server): Router {
         console.error('Failed to broadcast teacher update:', broadcastErr);
       }
 
+      console.log(
+        `[${new Date().toTimeString().split(' ')[0]}] 📝 РЕГИСТРАЦИЯ: ${lastName} ${firstName} подключился к аудитории [${gameCode}] -> Назначен ID #${joinResult.studentId}, Вариант №${joinResult.formId}`
+      );
+
       res.json(joinResult);
     } catch (err: any) {
       console.error('Join error:', err.message);
@@ -281,6 +285,17 @@ export function createApiRouter(io: Server): Router {
       }
       res.status(400).json({ error: err.message || 'Не удалось присоединиться к игре' });
     }
+  });
+
+  // 3.1 Live active users and entry log endpoint
+  router.get('/admin/active-users', async (_req: Request, res: Response): Promise<void> => {
+    const { userTracker } = await import('../utils/user-tracker.js');
+    res.json({
+      timestamp: new Date().toISOString(),
+      counts: userTracker.getOnlineCounts(),
+      activeUsers: userTracker.getActiveUsersList(),
+      recentActivityLog: userTracker.getActivityLog(),
+    });
   });
 
   // Clock synchronization HTTP endpoint (fallback for clients)
