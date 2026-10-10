@@ -12,9 +12,23 @@ import { setupSocketHandlers } from './socket/socket.handler.js';
 import { runMigrations } from './db/migrate.js';
 import { seedDatabase } from './db/seed.js';
 import { userTracker } from './utils/user-tracker.js';
+import {
+  securityHeadersMiddleware,
+  generalApiLimiter,
+  requireTeacherAuth,
+} from './middleware/security.middleware.js';
 
 const app = express();
 const server = http.createServer(app);
+
+// Hide server fingerprint
+app.disable('x-powered-by');
+
+// Enable reverse proxy trust (Cloudflare / Render reverse proxy)
+app.set('trust proxy', 1);
+
+// Apply OWASP Security Headers (CSP, FrameGuard, NoSniff, XSS)
+app.use(securityHeadersMiddleware);
 
 // Real-time Socket.IO setup
 const io = new SocketIOServer(server, {
@@ -27,14 +41,16 @@ const io = new SocketIOServer(server, {
 });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+// Strict JSON body size limit to prevent memory exhaustion / DoS
+app.use(express.json({ limit: '256kb' }));
+
+// Apply general API rate limiter to protect against floods
+app.use('/api', generalApiLimiter);
 
 // API Endpoints
 app.use('/api', createApiRouter(io));
-app.use('/api/import', importRouter);
-
-// Enable reverse proxy trust (Render sits behind SSL reverse proxies)
-app.set('trust proxy', 1);
+// Questions import/editing strictly protected by teacher auth
+app.use('/api/import', requireTeacherAuth, importRouter);
 
 // Health check
 app.get('/health', (_req, res) => {

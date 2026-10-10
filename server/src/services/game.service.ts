@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { QuestionService } from './question.service.js';
 import { ScoringService } from './scoring.service.js';
 import { EventService } from './event.service.js';
+import { sanitizeName } from '../middleware/security.middleware.js';
 
 export interface CreateGameParams {
   title?: string;
@@ -102,12 +103,12 @@ export class GameService {
    */
   public static async joinGame(params: JoinGameParams) {
     const { gameCode, firstName, lastName, existingSessionToken } = params;
-    const cleanCode = gameCode.trim().toUpperCase();
-    const cleanFirst = firstName.trim();
-    const cleanLast = lastName.trim();
+    const cleanCode = (gameCode || '').trim().toUpperCase();
+    const cleanFirst = sanitizeName(firstName);
+    const cleanLast = sanitizeName(lastName);
 
     if (!cleanFirst || !cleanLast) {
-      throw new Error('Имя и фамилия обязательны для заполнения.');
+      throw new Error('Имя и фамилия обязательны для заполнения (недопустимы спецсимволы и пустые значения).');
     }
 
     return await withTransaction(async (db) => {

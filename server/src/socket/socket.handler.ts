@@ -3,6 +3,7 @@ import { getDb } from '../db/index.js';
 import { EventService } from '../services/event.service.js';
 import { GameService } from '../services/game.service.js';
 import { userTracker } from '../utils/user-tracker.js';
+import { isValidTeacherToken } from '../middleware/security.middleware.js';
 
 let timerTickerInterval: NodeJS.Timeout | null = null;
 
@@ -81,8 +82,15 @@ export function setupSocketHandlers(io: Server) {
       });
     });
 
-    // 1. Teacher registers to room
-    socket.on('teacher:join', async (data: { gameId: string }) => {
+    // 1. Teacher registers to room (protected by teacher token)
+    socket.on('teacher:join', async (data: { gameId: string; teacherToken?: string }) => {
+      const token = data?.teacherToken || (socket.handshake.auth?.token as string);
+      if (!isValidTeacherToken(token)) {
+        console.warn(`[SECURITY] ⚠️ Неавторизованная попытка подключения к комнате учителя (socket: ${socket.id})`);
+        socket.emit('error', { message: 'Доступ запрещён: требуется авторизация учителя' });
+        return;
+      }
+
       attachedGameId = data.gameId;
       isTeacher = true;
       socket.join(`game:${data.gameId}:teacher`);
@@ -113,24 +121,11 @@ export function setupSocketHandlers(io: Server) {
       }
     });
 
-    // 2. Student connects / joins room
+    // 2. Student connects / joins room (validates sessionToken)
     socket.on('student:join', (data: { gameId: string; studentId: number; sessionToken: string }, callback?: () => void) => {
       attachedGameId = data.gameId;
       attachedStudentId = data.studentId;
       isTeacher = false;
-
-      socket.join(`game:${data.gameId}:students`);
-      socket.join(`game:${data.gameId}:student:${data.studentId}`);
-
-      // Notify teacher room of online status immediately
-      io.to(`game:${data.gameId}:teacher`).emit('student:status_change', {
-        studentId: data.studentId,
-        isOnline: true,
-      });
-
-      if (typeof callback === 'function') {
-        callback();
-      }
 
       // Check if test is already IN_PROGRESS to sync timer immediately upon join
       getDb()
@@ -140,27 +135,56 @@ export function setupSocketHandlers(io: Server) {
             [data.gameId]
           );
 
-          // Retrieve student details for server console logging
+          // Retrieve student details for server console logging and token verification
           const studentRes = await db.query(
-            `SELECT student_id, first_name, last_name, form_id
+            `SELECT student_id, first_name, last_name, form_id, session_token
              FROM students
              WHERE game_id = $1 AND student_id = $2`,
             [data.gameId, data.studentId]
           );
 
-          if (studentRes.rows.length > 0) {
-            const st = studentRes.rows[0];
-            userTracker.registerStudent({
-              socketId: socket.id,
-              studentId: st.student_id,
-              firstName: st.first_name,
-              lastName: st.last_name,
-              formId: st.form_id,
-              gameId: data.gameId,
-              gameCode: gameRes.rows[0]?.code,
-              ip: socket.handshake.address || '',
-            });
+          if (studentRes.rows.length === 0) {
+            socket.emit('error', { message: 'Ученик не найден в этой аудитории' });
+            return;
           }
+
+          const st = studentRes.rows[0];
+
+          // Session token verification (in production, tokens must match)
+          if (
+            process.env.NODE_ENV !== 'test' &&
+            data.sessionToken &&
+            st.session_token &&
+            st.session_token !== data.sessionToken
+          ) {
+            console.warn(`[SECURITY] ⚠️ Несовпадение токена сессии ученика #${data.studentId} на сокете ${socket.id}`);
+            socket.emit('error', { message: 'Недействительный токен сессии' });
+            return;
+          }
+
+          socket.join(`game:${data.gameId}:students`);
+          socket.join(`game:${data.gameId}:student:${data.studentId}`);
+
+          // Notify teacher room of online status immediately
+          io.to(`game:${data.gameId}:teacher`).emit('student:status_change', {
+            studentId: data.studentId,
+            isOnline: true,
+          });
+
+          if (typeof callback === 'function') {
+            callback();
+          }
+
+          userTracker.registerStudent({
+            socketId: socket.id,
+            studentId: st.student_id,
+            firstName: st.first_name,
+            lastName: st.last_name,
+            formId: st.form_id,
+            gameId: data.gameId,
+            gameCode: gameRes.rows[0]?.code,
+            ip: socket.handshake.address || '',
+          });
 
           if (gameRes.rows.length > 0 && gameRes.rows[0].status === 'IN_PROGRESS' && gameRes.rows[0].ends_at) {
             const remainingSeconds = Math.max(

@@ -48,9 +48,13 @@ export function useAntiCheat({
           metadata,
         });
       } else {
+        const studentToken = typeof localStorage !== 'undefined' ? localStorage.getItem('student_session_token') : null;
         fetch(`/api/games/${gameId}/student/${studentId}/event`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(studentToken ? { 'x-student-token': studentToken } : {}),
+          },
           body: JSON.stringify({ eventType, metadata }),
           keepalive: true,
         }).catch(() => {});

@@ -108,13 +108,22 @@ export interface TeacherDashboardResponse {
   maxStudents: number;
 }
 
+export const TEACHER_TOKEN_KEY = 'proctor_session_token';
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const teacherToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(TEACHER_TOKEN_KEY) : null;
+  const studentToken = typeof localStorage !== 'undefined' ? localStorage.getItem('student_session_token') : null;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(teacherToken ? { 'Authorization': `Bearer ${teacherToken}`, 'x-teacher-token': teacherToken } : {}),
+    ...(studentToken ? { 'x-student-token': studentToken } : {}),
+    ...(options.headers as Record<string, string>),
+  };
+
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   const data = await res.json().catch(() => ({}));
@@ -125,8 +134,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   return data as T;
 }
-
-export const TEACHER_TOKEN_KEY = 'proctor_session_token';
 
 export const api = {
   // Teacher Authentication
@@ -274,14 +281,27 @@ export const api = {
   finishStudentTest: (gameId: string, studentId: number) =>
     request<{ success: boolean }>(`/games/${gameId}/student/${studentId}/finish`, { method: 'POST' }),
 
-  downloadExcel: (gameId: string, gameCode: string) => {
-    const url = `${API_BASE}/games/${gameId}/export/excel`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Результаты_${gameCode}.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  downloadExcel: async (gameId: string, gameCode: string) => {
+    const teacherToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(TEACHER_TOKEN_KEY) : null;
+    const url = `${API_BASE}/games/${gameId}/export/excel${teacherToken ? `?token=${encodeURIComponent(teacherToken)}` : ''}`;
+    try {
+      const res = await fetch(url, {
+        headers: teacherToken ? { Authorization: `Bearer ${teacherToken}`, 'x-teacher-token': teacherToken } : {},
+      });
+      if (!res.ok) throw new Error('Не удалось скачать файл отчёта');
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `Результаты_${gameCode}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch {
+      // Fallback direct link
+      window.open(url, '_blank');
+    }
   },
 
   getFormsStatus: () =>

@@ -142,7 +142,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   useEffect(() => {
     if (!socket || !gameId) return;
 
-    socket.emit('teacher:join', { gameId });
+    socket.emit('teacher:join', {
+      gameId,
+      teacherToken: sessionStorage.getItem('proctor_session_token') || undefined,
+    });
 
     const handleDashboardUpdate = (data: TeacherDashboardResponse) => {
       setDashboard(data);

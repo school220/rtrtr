@@ -7,15 +7,19 @@ import { AnswerService } from '../services/answer.service.js';
 import { QuestionService } from '../services/question.service.js';
 import { EventService } from '../services/event.service.js';
 import { getDb } from '../db/index.js';
-
-// In-memory set of authenticated proctor session tokens
-const activeTeacherTokens = new Set<string>();
+import {
+  activeTeacherTokens,
+  requireTeacherAuth,
+  requireStudentOrTeacherAuth,
+  loginRateLimiter,
+  joinRateLimiter,
+} from '../middleware/security.middleware.js';
 
 export function createApiRouter(io: Server): Router {
   const router = Router();
 
-  // 0. Teacher authentication endpoints
-  router.post('/teacher/login', (req: Request, res: Response): void => {
+  // 0. Teacher authentication endpoints (with anti-bruteforce rate limiting)
+  router.post('/teacher/login', loginRateLimiter, (req: Request, res: Response): void => {
     const { username, password } = req.body || {};
     if (!username || !password) {
       res.status(400).json({ error: 'Необходимо указать логин и пароль' });
@@ -115,7 +119,7 @@ export function createApiRouter(io: Server): Router {
   });
 
   // List recent games for teacher dashboard (excluding private proctor preview rooms)
-  router.get('/games/recent', async (req: Request, res: Response): Promise<void> => {
+  router.get('/games/recent', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const db = await getDb();
       const resGames = await db.query(
@@ -137,7 +141,7 @@ export function createApiRouter(io: Server): Router {
   });
 
   // Get current active game (WAITING or IN_PROGRESS, excluding private proctor preview rooms)
-  router.get('/games/active', async (req: Request, res: Response): Promise<void> => {
+  router.get('/games/active', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const db = await getDb();
       const resGame = await db.query(
@@ -159,7 +163,7 @@ export function createApiRouter(io: Server): Router {
   });
 
   // 1. Teacher creates game
-  router.post('/games', async (req: Request, res: Response): Promise<void> => {
+  router.post('/games', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { title, durationSeconds, durationMinutes } = req.body;
       const duration = durationSeconds
@@ -177,7 +181,7 @@ export function createApiRouter(io: Server): Router {
   });
 
   // 1.1 Teacher updates game duration (when status === 'WAITING' before test starts)
-  router.patch('/games/:gameId/duration', async (req: Request, res: Response): Promise<void> => {
+  router.patch('/games/:gameId/duration', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const { durationMinutes, durationSeconds } = req.body;
@@ -248,8 +252,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 3. Student joins game (atomic ID allocation)
-  router.post('/games/join', async (req: Request, res: Response): Promise<void> => {
+  // 3. Student joins game (atomic ID allocation + anti-flood rate limiter)
+  router.post('/games/join', joinRateLimiter, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameCode, firstName, lastName, sessionToken } = req.body;
       if (!gameCode || !firstName || !lastName) {
@@ -287,8 +291,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 3.1 Live active users and entry log endpoint
-  router.get('/admin/active-users', async (_req: Request, res: Response): Promise<void> => {
+  // 3.1 Live active users and entry log endpoint (protected)
+  router.get('/admin/active-users', requireTeacherAuth, async (_req: Request, res: Response): Promise<void> => {
     const { userTracker } = await import('../utils/user-tracker.js');
     res.json({
       timestamp: new Date().toISOString(),
@@ -303,8 +307,8 @@ export function createApiRouter(io: Server): Router {
     res.json({ serverTime: Date.now() });
   });
 
-  // 4. Teacher starts test
-  router.post('/games/:gameId/start', async (req: Request, res: Response): Promise<void> => {
+  // 4. Teacher starts test (protected)
+  router.post('/games/:gameId/start', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const startResult = await GameService.startGame(gameId);
@@ -346,8 +350,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 5. Teacher manually finishes test
-  router.post('/games/:gameId/finish', async (req: Request, res: Response): Promise<void> => {
+  // 5. Teacher manually finishes test (protected)
+  router.post('/games/:gameId/finish', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const finishResult = await GameService.finishGame(gameId, 'MANUAL');
@@ -365,8 +369,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 6. Teacher gets dashboard snapshot
-  router.get('/games/:gameId/teacher', async (req: Request, res: Response): Promise<void> => {
+  // 6. Teacher gets dashboard snapshot (protected)
+  router.get('/games/:gameId/teacher', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const dashboard = await GameService.getTeacherDashboardData(gameId);
@@ -380,8 +384,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 6.1 Teacher downloads results in Excel (.xlsx) format
-  router.get('/games/:gameId/export/excel', async (req: Request, res: Response): Promise<void> => {
+  // 6.1 Teacher downloads results in Excel (.xlsx) format (protected)
+  router.get('/games/:gameId/export/excel', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const dashboard = await GameService.getTeacherDashboardData(gameId);
@@ -406,8 +410,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 7. Student retrieves current state
-  router.get('/games/:gameId/student/:studentId/state', async (req: Request, res: Response): Promise<void> => {
+  // 7. Student retrieves current state (protected by session token)
+  router.get('/games/:gameId/student/:studentId/state', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId } = req.params;
       const sId = parseInt(studentId, 10);
@@ -418,8 +422,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 7.1 Student retrieves all questions
-  router.get('/games/:gameId/student/:studentId/questions', async (req: Request, res: Response): Promise<void> => {
+  // 7.1 Student retrieves all questions (protected by session token)
+  router.get('/games/:gameId/student/:studentId/questions', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId } = req.params;
       const sId = parseInt(studentId, 10);
@@ -431,8 +435,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 8. Student retrieves specific question without sensitive answers
-  router.get('/games/:gameId/student/:studentId/question/:questionNumber', async (req: Request, res: Response): Promise<void> => {
+  // 8. Student retrieves specific question without sensitive answers (protected by session token)
+  router.get('/games/:gameId/student/:studentId/question/:questionNumber', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId, questionNumber } = req.params;
       const sId = parseInt(studentId, 10);
@@ -452,8 +456,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 9. Student submits answer
-  router.post('/games/:gameId/student/:studentId/answer', async (req: Request, res: Response): Promise<void> => {
+  // 9. Student submits answer (protected by session token)
+  router.post('/games/:gameId/student/:studentId/answer', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId } = req.params;
       const { questionNumber, selectedOptionId, answerText } = req.body;
@@ -483,8 +487,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 10. Student finishes test manually
-  router.post('/games/:gameId/student/:studentId/finish', async (req: Request, res: Response): Promise<void> => {
+  // 10. Student finishes test manually (protected by session token)
+  router.post('/games/:gameId/student/:studentId/finish', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId } = req.params;
       const sId = parseInt(studentId, 10);
@@ -505,8 +509,8 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // 11. Student telemetry / security event (fallback when socket is reconnecting)
-  router.post('/games/:gameId/student/:studentId/event', async (req: Request, res: Response): Promise<void> => {
+  // 11. Student telemetry / security event (protected by session token)
+  router.post('/games/:gameId/student/:studentId/event', requireStudentOrTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, studentId } = req.params;
       const { eventType, metadata } = req.body;
