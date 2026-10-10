@@ -20,7 +20,7 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: TEST_DURATION_SECONDS
-        value: "1200"
+        value: "1800"
       - key: MAX_STUDENTS_PER_GAME
         value: "50"
 
