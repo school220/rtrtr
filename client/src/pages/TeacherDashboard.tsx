@@ -67,6 +67,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   }[]>([]);
   const [loadingGames, setLoadingGames] = useState(false);
 
+  const [customMinutes, setCustomMinutes] = useState<string>('30');
+  const [savingDuration, setSavingDuration] = useState<boolean>(false);
+
   // Sorting
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortAsc, setSortAsc] = useState(true);
@@ -238,8 +241,43 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     try {
       const data = await api.getTeacherDashboard(id);
       setDashboard(data);
+      if (data?.game?.total_time_seconds) {
+        setCustomMinutes(String(Math.round(data.game.total_time_seconds / 60)));
+      }
     } catch (err: any) {
       setError(err.message || 'Xatolik yuz berdi');
+    }
+  };
+
+  const handleSaveDuration = async () => {
+    if (!gameId) return;
+    const mins = parseInt(customMinutes, 10);
+    if (isNaN(mins) || mins < 1 || mins > 120) {
+      alert('Пожалуйста, введите время от 1 до 120 минут');
+      return;
+    }
+    setSavingDuration(true);
+    try {
+      await api.updateGameDuration(gameId, mins);
+      await loadDashboard(gameId);
+    } catch (err: any) {
+      alert(err.message || 'Не удалось обновить время теста');
+    } finally {
+      setSavingDuration(false);
+    }
+  };
+
+  const handleQuickSetDuration = async (mins: number) => {
+    if (!gameId || starting || dashboard?.game?.status !== 'WAITING') return;
+    setCustomMinutes(String(mins));
+    setSavingDuration(true);
+    try {
+      await api.updateGameDuration(gameId, mins);
+      await loadDashboard(gameId);
+    } catch (err: any) {
+      alert(err.message || 'Не удалось обновить время теста');
+    } finally {
+      setSavingDuration(false);
     }
   };
 
@@ -552,20 +590,75 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           {/* Timer status */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 font-mono">
-              <Clock className="w-3 h-3 text-gray-400" />
-              <span>{isInProgress ? t.dashTimeRemaining : t.dashTimeDuration}</span>
+          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between font-mono">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-gray-400" />
+                <span>{isInProgress ? t.dashTimeRemaining : t.dashTimeDuration}</span>
+              </span>
+              {isWaiting && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                  {t.dashSetDuration}
+                </span>
+              )}
             </span>
+
             <div>
               {isInProgress && game.ends_at ? (
                 <TimerDisplay
                   endsAt={game.ends_at}
                   onExpire={() => gameId && loadDashboard(gameId)}
                 />
+              ) : isWaiting ? (
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={customMinutes}
+                      onChange={(e) => setCustomMinutes(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveDuration();
+                      }}
+                      className="w-14 px-1.5 py-0.5 text-xs font-mono font-black border border-gray-300 rounded focus:ring-1 focus:ring-[#25718f] bg-white text-gray-900 shadow-inner"
+                      title="Введите минуты (например: 21, 22)"
+                    />
+                    <span className="text-xs font-mono font-bold text-gray-700">{t.dashDurationMinLabel}</span>
+                    <button
+                      type="button"
+                      disabled={savingDuration || !customMinutes}
+                      onClick={handleSaveDuration}
+                      className="ml-auto px-2 py-0.5 text-[10px] font-mono font-bold bg-[#25718f] hover:bg-[#1f5f79] text-white rounded transition-colors disabled:opacity-50 shadow-xs"
+                      title="Сохранить время"
+                    >
+                      {savingDuration ? '...' : t.dashSaveDuration}
+                    </button>
+                  </div>
+
+                  {/* Quick pills for instant selection: 20, 21, 22, 25, 30 */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {[20, 21, 22, 25, 30].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        disabled={savingDuration}
+                        onClick={() => handleQuickSetDuration(mins)}
+                        className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded transition-all ${
+                          Math.round(game.total_time_seconds / 60) === mins
+                            ? 'bg-[#25718f] text-white shadow-xs scale-105'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                        title={`Назначить ${mins} минут`}
+                      >
+                        {mins}м
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900">
-                  {Math.round(game.total_time_seconds / 60)} daq
+                  {Math.round(game.total_time_seconds / 60)} {t.dashDurationMinLabel}
                 </div>
               )}
             </div>

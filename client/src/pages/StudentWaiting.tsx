@@ -17,6 +17,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
   onGameStarted,
 }) => {
   const { t } = useLanguage();
+  const [durationMinutes, setDurationMinutes] = React.useState<number>(30);
 
   useEffect(() => {
     if (!socket) return;
@@ -31,10 +32,18 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
       onGameStarted(data);
     };
 
+    const handleDurationUpdated = (data: { durationMinutes: number }) => {
+      if (data?.durationMinutes) {
+        setDurationMinutes(data.durationMinutes);
+      }
+    };
+
     socket.on('game:started', handleStart);
+    socket.on('game:duration_updated', handleDurationUpdated);
 
     return () => {
       socket.off('game:started', handleStart);
+      socket.off('game:duration_updated', handleDurationUpdated);
     };
   }, [socket, studentData, onGameStarted]);
 
@@ -122,7 +131,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
               </div>
               <div className="flex items-center justify-between">
                 <span>{t.waitingSpecDuration}</span>
-                <strong className="text-gray-900">{t.waitingSpecDurationVal}</strong>
+                <strong className="text-gray-900 font-bold">{durationMinutes} {t.dashDurationUnit}</strong>
               </div>
             </div>
 

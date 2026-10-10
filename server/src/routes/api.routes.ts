@@ -161,12 +161,68 @@ export function createApiRouter(io: Server): Router {
   // 1. Teacher creates game
   router.post('/games', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { title, durationSeconds } = req.body;
-      const game = await GameService.createGame({ title, durationSeconds });
+      const { title, durationSeconds, durationMinutes } = req.body;
+      const duration = durationSeconds
+        ? parseInt(durationSeconds, 10)
+        : durationMinutes
+        ? parseInt(durationMinutes, 10) * 60
+        : undefined;
+
+      const game = await GameService.createGame({ title, durationSeconds: duration });
       res.status(201).json(game);
     } catch (err: any) {
       console.error('Error creating game:', err);
       res.status(500).json({ error: err.message || 'Ошибка создания игры' });
+    }
+  });
+
+  // 1.1 Teacher updates game duration (when status === 'WAITING' before test starts)
+  router.patch('/games/:gameId/duration', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { gameId } = req.params;
+      const { durationMinutes, durationSeconds } = req.body;
+      const rawSecs = durationSeconds
+        ? parseInt(durationSeconds, 10)
+        : parseInt(durationMinutes, 10) * 60;
+
+      if (isNaN(rawSecs) || rawSecs < 60 || rawSecs > 7200) {
+        res.status(400).json({ error: 'Время теста должно быть от 1 до 120 минут (60..7200 сек)' });
+        return;
+      }
+
+      const db = await getDb();
+      const gameRes = await db.query('SELECT id, status, code FROM games WHERE id = $1', [gameId]);
+      if (gameRes.rows.length === 0) {
+        res.status(404).json({ error: 'Игра не найдена' });
+        return;
+      }
+
+      const game = gameRes.rows[0];
+      if (game.status !== 'WAITING') {
+        res.status(400).json({ error: 'Изменить время теста можно только до его запуска (в статусе ожидания)' });
+        return;
+      }
+
+      await db.query('UPDATE games SET total_time_seconds = $1 WHERE id = $2', [rawSecs, gameId]);
+
+      // Broadcast update to teacher and students waiting
+      const dashboard = await GameService.getTeacherDashboardData(gameId);
+      io.to(`game:${gameId}:teacher`).emit('teacher:dashboard_update', dashboard);
+      io.to(`game:${gameId}:students`).emit('game:duration_updated', {
+        gameId,
+        totalTimeSeconds: rawSecs,
+        durationMinutes: Math.round(rawSecs / 60),
+      });
+
+      res.json({
+        success: true,
+        gameId,
+        totalTimeSeconds: rawSecs,
+        durationMinutes: Math.round(rawSecs / 60),
+      });
+    } catch (err: any) {
+      console.error('Error updating game duration:', err);
+      res.status(500).json({ error: err.message || 'Ошибка обновления времени теста' });
     }
   });
 

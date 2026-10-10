@@ -196,6 +196,12 @@ export const api = {
       { method: 'POST', body: JSON.stringify(params) }
     ),
 
+  updateGameDuration: (gameId: string, durationMinutes: number) =>
+    request<{ success: boolean; gameId: string; totalTimeSeconds: number; durationMinutes: number }>(
+      `/games/${gameId}/duration`,
+      { method: 'PATCH', body: JSON.stringify({ durationMinutes }) }
+    ),
+
   getRecentGames: () =>
     request<{
       id: string;
