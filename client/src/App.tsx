@@ -111,7 +111,12 @@ export const App: React.FC = () => {
   };
 
   // Game Started Broadcast Event
-  const handleGameStarted = (_data: { startedAt: string; endsAt: string }) => {
+  const handleGameStarted = (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => {
+    setStudentData((prev) => prev ? {
+      ...prev,
+      gameStatus: 'IN_PROGRESS',
+      endsAt: data.endsAt,
+    } : null);
     setView('student_quiz');
   };
 

@@ -227,24 +227,48 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
+  // Clock synchronization HTTP endpoint (fallback for clients)
+  router.get('/time', (_req: Request, res: Response): void => {
+    res.json({ serverTime: Date.now() });
+  });
+
   // 4. Teacher starts test
   router.post('/games/:gameId/start', async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
       const startResult = await GameService.startGame(gameId);
 
-      // Synchronous broadcast to all students and teacher
-      io.to(`game:${gameId}:students`).emit('game:started', {
+      const totalTimeSeconds = Math.max(
+        0,
+        Math.floor((new Date(startResult.endsAt).getTime() - new Date(startResult.startedAt).getTime()) / 1000)
+      );
+
+      const startPayload = {
         gameId,
         startedAt: startResult.startedAt,
+        endsAt: startResult.endsAt,
+        totalTimeSeconds,
+        remainingSeconds: totalTimeSeconds,
+        serverTime: Date.now(),
+      };
+
+      // Synchronous broadcast to all students and teacher
+      io.to(`game:${gameId}:students`).emit('game:started', startPayload);
+
+      // Emit initial authoritative timer tick immediately
+      io.to(`game:${gameId}:students`).to(`game:${gameId}:teacher`).emit('game:timer_tick', {
+        gameId,
+        remainingSeconds: totalTimeSeconds,
+        totalTimeSeconds,
+        serverTime: Date.now(),
         endsAt: startResult.endsAt,
       });
 
       const dashboard = await GameService.getTeacherDashboardData(gameId);
       io.to(`game:${gameId}:teacher`).emit('teacher:dashboard_update', dashboard);
-      io.to(`game:${gameId}:teacher`).emit('game:started', startResult);
+      io.to(`game:${gameId}:teacher`).emit('game:started', startPayload);
 
-      res.json({ success: true, ...startResult });
+      res.json({ success: true, ...startResult, ...startPayload });
     } catch (err: any) {
       console.error('Start error:', err);
       res.status(400).json({ error: err.message || 'Не удалось запустить тест' });

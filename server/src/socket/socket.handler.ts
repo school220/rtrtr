@@ -3,11 +3,79 @@ import { getDb } from '../db/index.js';
 import { EventService } from '../services/event.service.js';
 import { GameService } from '../services/game.service.js';
 
+let timerTickerInterval: NodeJS.Timeout | null = null;
+
+export function stopTimerTicker() {
+  if (timerTickerInterval) {
+    clearInterval(timerTickerInterval);
+    timerTickerInterval = null;
+  }
+}
+
 export function setupSocketHandlers(io: Server) {
+  // Start server-authoritative 1-second countdown ticker for all active tests
+  if (!timerTickerInterval) {
+    timerTickerInterval = setInterval(async () => {
+      try {
+        const db = await getDb();
+        const gamesRes = await db.query(
+          `SELECT id, code, ends_at, total_time_seconds, status
+           FROM games
+           WHERE status = 'IN_PROGRESS' AND ends_at IS NOT NULL`
+        );
+
+        const now = Date.now();
+        for (const g of gamesRes.rows) {
+          const endsAtMs = new Date(g.ends_at).getTime();
+          const remainingSeconds = Math.max(0, Math.floor((endsAtMs - now) / 1000));
+
+          // Broadcast authoritative clock tick to everyone in the exam room
+          io.to(`game:${g.id}:students`).to(`game:${g.id}:teacher`).emit('game:timer_tick', {
+            gameId: g.id,
+            remainingSeconds,
+            totalTimeSeconds: g.total_time_seconds,
+            serverTime: now,
+            endsAt: g.ends_at,
+          });
+
+          // Check if test time has expired
+          if (remainingSeconds <= 0) {
+            console.log(`⏰ Time expired for game ${g.code} (${g.id}). Auto-finishing test...`);
+            await GameService.finishGame(g.id, 'TIME_EXPIRED');
+
+            io.to(`game:${g.id}:students`).emit('game:finished', {
+              gameId: g.id,
+              reason: 'TIME_EXPIRED',
+            });
+            io.to(`game:${g.id}:teacher`).emit('game:finished', {
+              gameId: g.id,
+              reason: 'TIME_EXPIRED',
+            });
+
+            const dashboard = await GameService.getTeacherDashboardData(g.id);
+            if (dashboard) {
+              io.to(`game:${g.id}:teacher`).emit('teacher:dashboard_update', dashboard);
+            }
+          }
+        }
+      } catch (tickerErr) {
+        // Silently catch to avoid crashing socket ticker
+      }
+    }, 1000);
+  }
+
   io.on('connection', (socket: Socket) => {
     let attachedGameId: string | null = null;
     let attachedStudentId: number | null = null;
     let isTeacher = false;
+
+    // 0. Millisecond-precision clock synchronization (NTP Cristian's algorithm)
+    socket.on('time:ping', (data: { clientTimestamp: number }) => {
+      socket.emit('time:pong', {
+        clientTimestamp: data?.clientTimestamp ?? 0,
+        serverTime: Date.now(),
+      });
+    });
 
     // 1. Teacher registers to room
     socket.on('teacher:join', async (data: { gameId: string }) => {
@@ -19,6 +87,21 @@ export function setupSocketHandlers(io: Server) {
       try {
         const dashboard = await GameService.getTeacherDashboardData(data.gameId);
         socket.emit('teacher:dashboard_update', dashboard);
+
+        // Also emit immediate timer state if active
+        if (dashboard?.game?.status === 'IN_PROGRESS' && dashboard.game.ends_at) {
+          const remainingSeconds = Math.max(
+            0,
+            Math.floor((new Date(dashboard.game.ends_at).getTime() - Date.now()) / 1000)
+          );
+          socket.emit('game:timer_tick', {
+            gameId: data.gameId,
+            remainingSeconds,
+            totalTimeSeconds: dashboard.game.total_time_seconds,
+            serverTime: Date.now(),
+            endsAt: dashboard.game.ends_at,
+          });
+        }
       } catch (err) {
         console.error('Error fetching dashboard on teacher join:', err);
       }
@@ -43,15 +126,33 @@ export function setupSocketHandlers(io: Server) {
         callback();
       }
 
-      // Update DB asynchronously in background
+      // Check if test is already IN_PROGRESS to sync timer immediately upon join
       getDb()
-        .then((db) =>
-          db.query(
+        .then(async (db) => {
+          const gameRes = await db.query(
+            `SELECT ends_at, total_time_seconds, status FROM games WHERE id = $1`,
+            [data.gameId]
+          );
+          if (gameRes.rows.length > 0 && gameRes.rows[0].status === 'IN_PROGRESS' && gameRes.rows[0].ends_at) {
+            const remainingSeconds = Math.max(
+              0,
+              Math.floor((new Date(gameRes.rows[0].ends_at).getTime() - Date.now()) / 1000)
+            );
+            socket.emit('game:timer_tick', {
+              gameId: data.gameId,
+              remainingSeconds,
+              totalTimeSeconds: gameRes.rows[0].total_time_seconds,
+              serverTime: Date.now(),
+              endsAt: gameRes.rows[0].ends_at,
+            });
+          }
+
+          await db.query(
             `UPDATE students SET is_online = TRUE, last_active_at = CURRENT_TIMESTAMP
              WHERE game_id = $1 AND student_id = $2`,
             [data.gameId, data.studentId]
-          )
-        )
+          );
+        })
         .catch(() => {});
     });
 

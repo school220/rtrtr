@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock } from 'lucide-react';
+import { timeSync, TimerTickData } from '../services/timeSync.js';
 
 interface TimerDisplayProps {
   endsAt: string;
@@ -9,55 +10,88 @@ interface TimerDisplayProps {
 }
 
 /**
- * Server-authoritative countdown timer.
- * Uses monotonic performance.now() to ensure that changing the device clock
- * or timezone cannot manipulate the test countdown.
+ * Server-authoritative, monotonic, synchronized countdown timer.
+ * Eliminates jitter and time jumps by:
+ * 1. Synchronizing with server ticks (game:timer_tick) via WebSocket.
+ * 2. Enforcing smooth monotonic 1-second local decrement (no jumping back and forth).
+ * 3. Correcting for device clock skew using Cristian's NTP algorithm.
  */
 export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   endsAt,
-  serverTime,
   onExpire,
   className = '',
 }) => {
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
-  const baselineRef = useRef<{ serverBaseMs: number; perfBaseMs: number } | null>(null);
-  const hasExpiredRef = useRef(false);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
+    if (!endsAt) return 0;
+    const targetMs = new Date(endsAt).getTime();
+    const serverNow = timeSync.getServerNow();
+    return Math.max(0, Math.floor((targetMs - serverNow) / 1000));
+  });
 
+  const localSecondsRef = useRef<number>(secondsRemaining);
+  const hasExpiredRef = useRef<boolean>(false);
+  const onExpireRef = useRef(onExpire);
+  onExpireRef.current = onExpire;
+
+  // Initialize or re-anchor target time when endsAt changes
   useEffect(() => {
     if (!endsAt) return;
 
     const targetMs = new Date(endsAt).getTime();
-    const serverMs = serverTime ? new Date(serverTime).getTime() : Date.now();
-    const perfMs = performance.now();
+    const serverNow = timeSync.getServerNow();
+    const initialSecs = Math.max(0, Math.floor((targetMs - serverNow) / 1000));
 
-    baselineRef.current = {
-      serverBaseMs: serverMs,
-      perfBaseMs: perfMs,
-    };
+    localSecondsRef.current = initialSecs;
+    setSecondsRemaining(initialSecs);
     hasExpiredRef.current = false;
+  }, [endsAt]);
 
-    const updateTimer = () => {
-      if (!baselineRef.current) return;
-      const elapsed = performance.now() - baselineRef.current.perfBaseMs;
-      const currentServerTime = baselineRef.current.serverBaseMs + elapsed;
-      const diffMs = targetMs - currentServerTime;
-      const secs = Math.max(0, Math.floor(diffMs / 1000));
+  // Subscribe to authoritative 1-second server heartbeat ticks
+  useEffect(() => {
+    if (!endsAt) return;
 
-      setSecondsRemaining(secs);
+    const handleTick = (tick: TimerTickData) => {
+      const serverSecs = tick.remainingSeconds;
+      const currentLocal = localSecondsRef.current;
 
-      if (secs <= 0 && !hasExpiredRef.current) {
+      // If local time matches server within 1 second, DO NOT JUMP (smooth local ticker)
+      const diff = Math.abs(currentLocal - serverSecs);
+      if (diff > 1) {
+        // Device drifted (e.g. tab was minimized / phone locked screen for a while)
+        localSecondsRef.current = serverSecs;
+        setSecondsRemaining(serverSecs);
+      }
+
+      if (serverSecs <= 0 && !hasExpiredRef.current) {
         hasExpiredRef.current = true;
-        if (onExpire) {
-          onExpire();
-        }
+        onExpireRef.current?.();
       }
     };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 500);
+    const unsubscribe = timeSync.subscribeTicks(handleTick);
+    return () => {
+      unsubscribe();
+    };
+  }, [endsAt]);
+
+  // Smooth local 1-second ticker between server heartbeats
+  useEffect(() => {
+    if (!endsAt) return;
+
+    const interval = setInterval(() => {
+      if (localSecondsRef.current > 0) {
+        localSecondsRef.current -= 1;
+        setSecondsRemaining(localSecondsRef.current);
+
+        if (localSecondsRef.current <= 0 && !hasExpiredRef.current) {
+          hasExpiredRef.current = true;
+          onExpireRef.current?.();
+        }
+      }
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [endsAt, serverTime, onExpire]);
+  }, [endsAt]);
 
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;

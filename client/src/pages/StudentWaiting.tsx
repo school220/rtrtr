@@ -8,7 +8,7 @@ import { LanguageSelector } from '../components/LanguageSelector.js';
 interface StudentWaitingProps {
   studentData: JoinGameResponse;
   socket: Socket | null;
-  onGameStarted: (data: { startedAt: string; endsAt: string }) => void;
+  onGameStarted: (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => void;
 }
 
 export const StudentWaiting: React.FC<StudentWaitingProps> = ({
@@ -27,7 +27,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
       sessionToken: studentData.sessionToken,
     });
 
-    const handleStart = (data: { startedAt: string; endsAt: string }) => {
+    const handleStart = (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => {
       onGameStarted(data);
     };
 

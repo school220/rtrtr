@@ -1,32 +1,37 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-export function useSocket() {
-  const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+let globalSocket: Socket | null = null;
 
-  useEffect(() => {
-    // In dev, Vite proxies /socket.io to backend port 3001
-    const socket = io({
+export function getSharedSocket(): Socket {
+  if (!globalSocket) {
+    globalSocket = io({
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 20,
       reconnectionDelay: 1000,
     });
+  }
+  return globalSocket;
+}
 
-    socketRef.current = socket;
+export function useSocket() {
+  const socket = getSharedSocket();
+  const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
 
-    socket.on('connect', () => {
-      setIsConnected(true);
-    });
+  useEffect(() => {
+    setIsConnected(socket.connected);
 
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
 
     return () => {
-      socket.disconnect();
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
     };
-  }, []);
+  }, [socket]);
 
-  return { socket: socketRef.current, isConnected };
+  return { socket, isConnected };
 }
