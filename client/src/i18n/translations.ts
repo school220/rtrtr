@@ -94,7 +94,7 @@ export const translations = {
     waitingSpecQuestions: "Savollar soni:",
     waitingSpecQuestionsVal: "20 ta (1–15 test, 16–20 yozma)",
     waitingSpecDuration: "Ajratilgan vaqt:",
-    waitingSpecDurationVal: "20 daqiqa",
+    waitingSpecDurationVal: "30 daqiqa",
     waitingProctorActive: "Proctoring xavfsizlik nazorati yoqilgan",
 
     // Student Quiz
@@ -106,7 +106,7 @@ export const translations = {
     quizRule1: "• Imtihon faqat to'liq ekran rejimida ishlaydi.",
     quizRule2: "• Oynani kichraytirish va boshqa ilovalarga o'tish (Alt+Tab) taqiqlanadi.",
     quizRule3: "• Skrinshot olish, matnni nusxalash (Ctrl+C) qat'iyan taqiqlanadi.",
-    quizRule4: "• Vaqt server orqali boshqariladi (20 ta savol • 20 daqiqa).",
+    quizRule4: "• Vaqt server orqali boshqariladi (20 ta savol • 30 daqiqa).",
     quizStartFullscreenBtn: "To'liq ekranni yoqish va boshlash",
     quizTopBrand: "HEMIS IMTIHON • YAKUNIY NAZORAT",
     quizSubject: "Matematika (4-sinf)",
@@ -370,7 +370,7 @@ export const translations = {
     waitingSpecQuestions: "Количество заданий:",
     waitingSpecQuestionsVal: "20 заданий (1–15 выбор, 16–20 ввод)",
     waitingSpecDuration: "Регламент времени:",
-    waitingSpecDurationVal: "20 минут",
+    waitingSpecDurationVal: "30 минут",
     waitingProctorActive: "Защита от списывания и прокторинг активированы",
 
     // Student Quiz
@@ -382,7 +382,7 @@ export const translations = {
     quizRule1: "• Экзамен работает только в полноэкранном режиме.",
     quizRule2: "• Запрещено сворачивать окно и нажимать Alt+Tab (фиксируется в протоколе).",
     quizRule3: "• Запрещены скриншоты, копирование текста и контекстное меню.",
-    quizRule4: "• Таймер контролируется сервером (20 вопросов • 20 минут).",
+    quizRule4: "• Таймер контролируется сервером (20 вопросов • 30 минут).",
     quizStartFullscreenBtn: "Включить полноэкранный режим и приступить",
     quizTopBrand: "HEMIS ЭКЗАМЕН • ИТОГОВЫЙ КОНТРОЛЬ",
     quizSubject: "Математика (4 класс)",

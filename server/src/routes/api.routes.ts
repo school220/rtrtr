@@ -75,7 +75,7 @@ export function createApiRouter(io: Server): Router {
       const db = await getDb();
       const gameId = uuidv4();
       const code = 'PRK' + Math.floor(100 + Math.random() * 900);
-      const duration = 1200; // 20 minutes
+      const duration = 1800; // 30 minutes
       const now = new Date();
       const endsAt = new Date(now.getTime() + duration * 1000);
 
