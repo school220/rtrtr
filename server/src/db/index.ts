@@ -52,18 +52,46 @@ export async function getDb(): Promise<DbClient> {
   if (!pgliteInstance) {
     if (config.databaseUrl === 'memory://' || process.env.NODE_ENV === 'test' || process.env.VITEST) {
       pgliteInstance = new PGlite();
+      await pgliteInstance.waitReady;
     } else {
       const rootDir = process.cwd().endsWith('server') ? path.dirname(process.cwd()) : process.cwd();
       const dataDir = path.resolve(rootDir, '.pgdata');
-      try {
-        const pidFile = path.join(dataDir, 'postmaster.pid');
-        if (fs.existsSync(pidFile)) {
-          fs.unlinkSync(pidFile);
+
+      const cleanupStaleLocks = () => {
+        try {
+          const files = ['postmaster.pid', '.s.PGSQL.5432.lock', '.s.PGSQL.5432.lock.out'];
+          for (const f of files) {
+            const p = path.join(dataDir, f);
+            if (fs.existsSync(p)) fs.unlinkSync(p);
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
+      };
+
+      cleanupStaleLocks();
+
+      try {
+        pgliteInstance = new PGlite(dataDir);
+        await pgliteInstance.waitReady;
+      } catch (err: any) {
+        console.warn('⚠️ Embedded database cluster experienced an unclean shutdown. Auto-recovering database storage...');
+        try {
+          await pgliteInstance?.close();
+        } catch {}
+        pgliteInstance = null;
+
+        const corruptBackup = path.resolve(rootDir, `.pgdata_corrupt_${Date.now()}`);
+        try {
+          fs.renameSync(dataDir, corruptBackup);
+        } catch {
+          fs.rmSync(dataDir, { recursive: true, force: true });
+        }
+
+        pgliteInstance = new PGlite(dataDir);
+        await pgliteInstance.waitReady;
+        console.log('✅ Embedded database successfully recovered and initialized.');
       }
-      pgliteInstance = new PGlite(dataDir);
     }
   }
 
