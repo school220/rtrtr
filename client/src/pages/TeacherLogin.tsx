@@ -106,9 +106,9 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a2226] text-[#b8c7ce] flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#1a2226] text-[#b8c7ce] flex flex-col font-sans select-none pb-safe">
       {/* Official Top Bar */}
-      <header className="bg-[#222d32] border-b border-[#2c3b41] h-14 flex items-center justify-between px-4 sm:px-8 shadow-sm">
+      <header className="bg-[#222d32] border-b border-[#2c3b41] h-14 pt-safe flex items-center justify-between px-4 sm:px-8 shadow-sm sticky top-0 z-40 backdrop-blur-md bg-[#222d32]/95">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#25718f] text-white flex items-center justify-center shadow">
             <GraduationCap className="w-5 h-5 text-cyan-200" />
@@ -136,10 +136,10 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
       </header>
 
       {/* Main Login / Register Area */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md space-y-4 animate-in fade-in duration-300">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pb-8">
+        <div className="w-full max-w-md space-y-4 animate-pop">
           {/* Card */}
-          <div className="bg-[#222d32] border border-[#2c3b41] rounded-xl shadow-2xl overflow-hidden">
+          <div className="bg-[#222d32] border border-[#2c3b41] rounded-2xl shadow-2xl overflow-hidden card-interactive">
             {/* Header banner */}
             <div className="bg-[#25718f] text-white p-6 text-center relative border-b border-[#1f5f79]">
               <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto text-cyan-100 shadow-inner mb-3">
@@ -193,7 +193,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
             <div className="p-6 sm:p-8 space-y-5 bg-[#222d32]">
               {/* Error Alert */}
               {error && (
-                <div className="p-3.5 rounded-lg bg-rose-950/50 border border-rose-800 text-rose-200 text-xs flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-200 text-xs flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-200">
                   <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
                   <span className="font-semibold leading-tight">{error}</span>
                 </div>
@@ -217,7 +217,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authUsernamePlaceholder}
                         autoComplete="username"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                     </div>
                   </div>
@@ -237,7 +237,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authPasswordPlaceholder}
                         autoComplete="current-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                       <button
                         type="button"
@@ -254,7 +254,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3 px-4 rounded-lg bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-cyan-900/20"
+                      className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-[#25718f] hover:bg-[#1f5f79] active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-cyan-900/20"
                     >
                       {loading ? (
                         <>
@@ -290,7 +290,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authFullNamePlaceholder}
                         autoComplete="name"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authUsernamePlaceholder}
                         autoComplete="username"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                     </div>
                   </div>
@@ -330,7 +330,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authPasswordPlaceholder}
                         autoComplete="new-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                       <button
                         type="button"
@@ -358,7 +358,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authConfirmPasswordPlaceholder}
                         autoComplete="new-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
                       />
                     </div>
                   </div>
@@ -367,7 +367,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-emerald-900/20"
+                      className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-emerald-900/20"
                     >
                       {loading ? (
                         <>

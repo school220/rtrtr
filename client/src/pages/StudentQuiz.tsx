@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import {
   CheckCircle2,
@@ -29,6 +29,255 @@ interface StudentQuizProps {
   isProctorPreview?: boolean;
   onExitPreview?: () => void;
 }
+
+interface MultipleChoiceCardProps {
+  question: QuestionData;
+  selectedOptionId?: number;
+  isSaved: boolean;
+  isSaving: boolean;
+  onSelectOption: (questionNumber: number, optionId: number) => void;
+  t: any;
+}
+
+const MultipleChoiceCard = React.memo<MultipleChoiceCardProps>(
+  ({ question: q, selectedOptionId, isSaved, isSaving, onSelectOption, t }) => {
+    return (
+      <div
+        id={`question-${q.questionNumber}`}
+        className={`bg-white border rounded-xl p-4 sm:p-6 shadow-sm space-y-4 transition-all duration-200 scroll-mt-32 card-interactive ${
+          isSaved
+            ? 'border-emerald-300 ring-2 ring-emerald-100 shadow-emerald-50/50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-md bg-[#25718f] text-white font-bold text-xs shadow-xs">
+              № {String(q.questionNumber).padStart(2, '0')}
+            </span>
+            <span className="text-gray-500 font-semibold">{t.quizPart1Type}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 font-mono hidden xs:inline">{t.quizPointVal}</span>
+            {isSaving ? (
+              <span className="text-amber-600 font-bold flex items-center gap-1.5 text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                {t.quizSaving}
+              </span>
+            ) : isSaved ? (
+              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 animate-fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                {t.quizAutoSaved}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Question Text with KaTeX formulas */}
+        <div className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 leading-relaxed tracking-normal select-none">
+          <MathRenderer content={q.text} />
+        </div>
+
+        {/* Clickable Option Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+          {q.options?.map((opt) => {
+            const isSelected = selectedOptionId === opt.id;
+
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelectOption(q.questionNumber, opt.id)}
+                className={`min-h-[58px] p-3 sm:p-4 rounded-xl border text-left flex items-center gap-3 transition-all duration-150 active:scale-[0.98] ${
+                  isSelected
+                    ? 'border-[#25718f] bg-cyan-50/80 ring-2 ring-[#25718f]/40 shadow-sm text-gray-950 font-semibold'
+                    : 'border-gray-200 bg-white hover:border-[#25718f]/40 hover:bg-cyan-50/20 text-gray-800'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg font-mono text-xs sm:text-sm font-bold flex items-center justify-center shrink-0 border transition-all duration-150 ${
+                    isSelected
+                      ? 'bg-[#25718f] border-[#25718f] text-white shadow-xs scale-105'
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  {opt.label}
+                </div>
+                <div className="text-base sm:text-lg font-semibold flex-1 py-0.5 overflow-x-auto no-scrollbar">
+                  <MathRenderer content={opt.text} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+);
+
+interface ShortAnswerCardProps {
+  question: QuestionData;
+  answerText: string;
+  isSaved: boolean;
+  isSaving: boolean;
+  onSaveText: (questionNumber: number, text: string) => void;
+  onTextChange: (questionNumber: number, text: string) => void;
+  t: any;
+}
+
+const ShortAnswerCard = React.memo<ShortAnswerCardProps>(
+  ({ question: q, answerText, isSaved, isSaving, onSaveText, onTextChange, t }) => {
+    // Local state for 120 FPS instantaneous typing without touching parent tree!
+    const [localVal, setLocalVal] = useState(answerText || '');
+
+    useEffect(() => {
+      setLocalVal(answerText || '');
+    }, [answerText]);
+
+    const handleInput = (val: string) => {
+      setLocalVal(val);
+      onTextChange(q.questionNumber, val);
+    };
+
+    const handleInsert = (symbol: string) => {
+      const updated = localVal + symbol;
+      handleInput(updated);
+    };
+
+    const handleTriggerSave = () => {
+      if (localVal.trim()) {
+        onSaveText(q.questionNumber, localVal.trim());
+      }
+    };
+
+    return (
+      <div
+        id={`question-${q.questionNumber}`}
+        className={`bg-white border rounded-xl p-4 sm:p-6 shadow-sm space-y-4 transition-all duration-200 scroll-mt-32 card-interactive ${
+          isSaved
+            ? 'border-purple-300 ring-2 ring-purple-100 shadow-purple-50/50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-md bg-purple-700 text-white font-bold text-xs shadow-xs">
+              № {String(q.questionNumber).padStart(2, '0')}
+            </span>
+            <span className="text-purple-900 font-semibold">{t.quizPart2Type}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 font-mono hidden xs:inline">{t.quizPointVal}</span>
+            {isSaving ? (
+              <span className="text-amber-600 font-bold flex items-center gap-1.5 text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                {t.quizSaving}
+              </span>
+            ) : isSaved ? (
+              <span className="text-purple-700 font-bold flex items-center gap-1 text-[11px] bg-purple-50 px-2 py-0.5 rounded border border-purple-200 animate-fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                {t.quizAutoSaved}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Question Text with KaTeX formulas */}
+        <div className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 leading-relaxed tracking-normal select-none">
+          <MathRenderer content={q.text} />
+        </div>
+
+        {/* Short Answer Input Field & Quick Math Toolbar */}
+        <div className="pt-1 space-y-3">
+          <div className="text-xs font-mono text-gray-600 flex items-center gap-1.5 font-medium">
+            <Edit3 className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+            <span className="line-clamp-1">{t.quizShortAnswerHint}</span>
+          </div>
+
+          {/* Quick Math Symbols Helper for Students (touch targets optimized for phones) */}
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-gray-50/80 border border-gray-200 text-xs font-mono">
+            <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1 shrink-0">
+              {t.quizQuickSymbols || 'Быстрый ввод:'}
+            </span>
+            {[
+              { label: '/ (дробь)', val: '/' },
+              { label: ', (запятая)', val: ',' },
+              { label: '.', val: '.' },
+              { label: '-', val: '-' },
+              { label: '+', val: '+' },
+              { label: '√', val: '√' },
+              { label: 'x²', val: '²' },
+              { label: 'x³', val: '³' },
+              { label: 'π', val: 'π' },
+            ].map((item) => (
+              <button
+                key={item.val}
+                type="button"
+                onClick={() => handleInsert(item.val)}
+                className="min-h-[32px] px-2.5 py-1 rounded-md bg-white hover:bg-purple-50 active:scale-95 border border-gray-300 hover:border-purple-300 text-gray-800 font-bold text-xs transition-all shadow-2xs"
+                title={`Вставить ${item.label}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="text"
+              inputMode="text"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={localVal}
+              onChange={(e) => handleInput(e.target.value)}
+              onBlur={handleTriggerSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleTriggerSave();
+                }
+              }}
+              placeholder={t.quizShortAnswerPlaceholder}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 font-mono text-lg font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white transition-all"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={handleTriggerSave}
+              disabled={isSaving || !localVal.trim()}
+              className="w-full sm:w-auto min-h-[46px] py-2.5 px-6 rounded-lg bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{t.quizSaveAnswer}</span>
+            </button>
+          </div>
+
+          {/* Real-Time Live Math Preview of Student Input */}
+          {localVal.trim() && (
+            <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-purple-50/90 border border-purple-200 text-purple-950 shadow-xs animate-slide-up">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-700 shrink-0 uppercase tracking-wider">
+                <Eye className="w-3.5 h-3.5" />
+                <span>{t.quizPreviewFormula || 'Предпросмотр:'}</span>
+              </div>
+              <div className="text-base sm:text-lg font-bold text-gray-950 overflow-x-auto no-scrollbar py-0.5">
+                <MathRenderer content={localVal} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
 
 export const StudentQuiz: React.FC<StudentQuizProps> = ({
   gameId,
@@ -168,41 +417,47 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
   };
 
   // Submit answer for multiple choice question immediately
-  const handleSelectOption = async (questionNumber: number, optionId: number) => {
-    const updated = {
-      ...answers,
-      [questionNumber]: { selectedOptionId: optionId },
-    };
-    setAnswers(updated);
-    setSavingMap((prev) => ({ ...prev, [questionNumber]: true }));
-    setError(null);
+  const handleSelectOption = useCallback(
+    async (questionNumber: number, optionId: number) => {
+      const updated = {
+        ...answers,
+        [questionNumber]: { selectedOptionId: optionId },
+      };
+      setAnswers(updated);
+      setSavingMap((prev) => ({ ...prev, [questionNumber]: true }));
+      setError(null);
 
-    try {
-      await api.submitAnswer({
-        gameId,
-        studentId,
-        questionNumber,
-        selectedOptionId: optionId,
-      });
-
-      setSavedMap((prev) => ({ ...prev, [questionNumber]: true }));
-      // Update answeredCount in state
-      if (state) {
-        setState({
-          ...state,
-          answeredMap: updated,
-          answeredCount: Object.keys(updated).length,
+      try {
+        await api.submitAnswer({
+          gameId,
+          studentId,
+          questionNumber,
+          selectedOptionId: optionId,
         });
+
+        setSavedMap((prev) => ({ ...prev, [questionNumber]: true }));
+        if (state) {
+          setState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  answeredMap: updated,
+                  answeredCount: Object.keys(updated).length,
+                }
+              : null
+          );
+        }
+      } catch (err: any) {
+        setError(`№${questionNumber}: ${err.message || 'Javobni saqlab bo‘lmadi'}`);
+      } finally {
+        setSavingMap((prev) => ({ ...prev, [questionNumber]: false }));
       }
-    } catch (err: any) {
-      setError(`№${questionNumber}: ${err.message || 'Javobni saqlab bo‘lmadi'}`);
-    } finally {
-      setSavingMap((prev) => ({ ...prev, [questionNumber]: false }));
-    }
-  };
+    },
+    [answers, gameId, studentId, state]
+  );
 
   // Handle typing answer for short answer question
-  const handleTextChange = (questionNumber: number, text: string) => {
+  const handleTextChange = useCallback((questionNumber: number, text: string) => {
     setAnswers((prev) => ({
       ...prev,
       [questionNumber]: {
@@ -211,50 +466,58 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
       },
     }));
     setSavedMap((prev) => ({ ...prev, [questionNumber]: false }));
-  };
+  }, []);
 
   // Submit short answer question
-  const handleSaveTextAnswer = async (questionNumber: number) => {
-    const text = (answers[questionNumber]?.answerText || '').trim();
-    if (!text) return;
+  const handleSaveTextAnswer = useCallback(
+    async (questionNumber: number, textOverride?: string) => {
+      const text = (textOverride !== undefined ? textOverride : answers[questionNumber]?.answerText || '').trim();
+      if (!text) return;
 
-    setSavingMap((prev) => ({ ...prev, [questionNumber]: true }));
-    setError(null);
+      setSavingMap((prev) => ({ ...prev, [questionNumber]: true }));
+      setError(null);
 
-    try {
-      await api.submitAnswer({
-        gameId,
-        studentId,
-        questionNumber,
-        answerText: text,
-      });
+      try {
+        await api.submitAnswer({
+          gameId,
+          studentId,
+          questionNumber,
+          answerText: text,
+        });
 
-      setSavedMap((prev) => ({ ...prev, [questionNumber]: true }));
-      if (state) {
         const updated = {
           ...answers,
           [questionNumber]: { answerText: text },
         };
-        setState({
-          ...state,
-          answeredMap: updated,
-          answeredCount: Object.keys(updated).length,
-        });
+        setAnswers(updated);
+        setSavedMap((prev) => ({ ...prev, [questionNumber]: true }));
+        if (state) {
+          setState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  answeredMap: updated,
+                  answeredCount: Object.keys(updated).length,
+                }
+              : null
+          );
+        }
+      } catch (err: any) {
+        setError(`№${questionNumber}: ${err.message || 'Javobni saqlab bo‘lmadi'}`);
+      } finally {
+        setSavingMap((prev) => ({ ...prev, [questionNumber]: false }));
       }
-    } catch (err: any) {
-      setError(`№${questionNumber}: ${err.message || 'Javobni saqlab bo‘lmadi'}`);
-    } finally {
-      setSavingMap((prev) => ({ ...prev, [questionNumber]: false }));
-    }
-  };
+    },
+    [answers, gameId, studentId, state]
+  );
 
   // Scroll to question
-  const scrollToQuestion = (questionNumber: number) => {
+  const scrollToQuestion = useCallback((questionNumber: number) => {
     const el = document.getElementById(`question-${questionNumber}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  }, []);
 
   // Confirm Finish Exam
   const handleConfirmFinish = async () => {
@@ -293,217 +556,30 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     multipleChoiceQuestions.length === 15 &&
     shortAnswerQuestions.length === 5;
 
-  const renderMultipleChoiceCard = (q: QuestionData) => {
-    const selectedOptId = answers[q.questionNumber]?.selectedOptionId;
-    const isSaved = savedMap[q.questionNumber] && !!selectedOptId;
-    const isSaving = savingMap[q.questionNumber];
+  const renderMultipleChoiceCard = (q: QuestionData) => (
+    <MultipleChoiceCard
+      key={q.questionNumber}
+      question={q}
+      selectedOptionId={answers[q.questionNumber]?.selectedOptionId}
+      isSaved={Boolean(savedMap[q.questionNumber] && answers[q.questionNumber]?.selectedOptionId)}
+      isSaving={Boolean(savingMap[q.questionNumber])}
+      onSelectOption={handleSelectOption}
+      t={t}
+    />
+  );
 
-    return (
-      <div
-        key={q.questionNumber}
-        id={`question-${q.questionNumber}`}
-        className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
-          isSaved ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200'
-        }`}
-      >
-        {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded bg-[#25718f] text-white font-bold text-xs">
-              № {String(q.questionNumber).padStart(2, '0')}
-            </span>
-            <span className="text-gray-500 font-semibold">{t.quizPart1Type}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
-            {isSaving ? (
-              <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                {t.quizSaving}
-              </span>
-            ) : isSaved ? (
-              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                {t.quizAutoSaved}
-              </span>
-            ) : (
-              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Question Text with KaTeX formulas */}
-        <div className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed tracking-normal">
-          <MathRenderer content={q.text} />
-        </div>
-
-        {/* Clickable Option Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          {q.options?.map((opt) => {
-            const isSelected = selectedOptId === opt.id;
-
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handleSelectOption(q.questionNumber, opt.id)}
-                className={`min-h-[58px] p-3.5 sm:p-4 rounded-xl border text-left flex items-center gap-3.5 transition-all active:scale-[0.99] ${
-                  isSelected
-                    ? 'border-[#25718f] bg-cyan-50/70 ring-2 ring-[#25718f]/40 shadow-sm text-gray-950 font-semibold'
-                    : 'border-gray-200 bg-white hover:border-[#25718f]/40 hover:bg-cyan-50/20 text-gray-800'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg font-mono text-xs sm:text-sm font-bold flex items-center justify-center shrink-0 border transition-all ${
-                    isSelected
-                      ? 'bg-[#25718f] border-[#25718f] text-white shadow-xs'
-                      : 'bg-gray-100 border-gray-300 text-gray-700'
-                  }`}
-                >
-                  {opt.label}
-                </div>
-                <div className="text-base sm:text-lg font-semibold flex-1 py-1 overflow-x-auto no-scrollbar">
-                  <MathRenderer content={opt.text} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderShortAnswerCard = (q: QuestionData) => {
-    const currentVal = answers[q.questionNumber]?.answerText || '';
-    const isSaved = savedMap[q.questionNumber] && !!currentVal.trim();
-    const isSaving = savingMap[q.questionNumber];
-
-    return (
-      <div
-        key={q.questionNumber}
-        id={`question-${q.questionNumber}`}
-        className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
-          isSaved ? 'border-purple-300 ring-1 ring-purple-200' : 'border-gray-200'
-        }`}
-      >
-        {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded bg-purple-700 text-white font-bold text-xs">
-              № {String(q.questionNumber).padStart(2, '0')}
-            </span>
-            <span className="text-purple-900 font-semibold">{t.quizPart2Type}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
-            {isSaving ? (
-              <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                {t.quizSaving}
-              </span>
-            ) : isSaved ? (
-              <span className="text-purple-700 font-bold flex items-center gap-1 text-[11px] bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
-                {t.quizAutoSaved}
-              </span>
-            ) : (
-              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Question Text with KaTeX formulas */}
-        <div className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed tracking-normal">
-          <MathRenderer content={q.text} />
-        </div>
-
-        {/* Short Answer Input Field & Student Quick Math Ribbon */}
-        <div className="pt-1 space-y-3">
-          <div className="text-xs font-mono text-gray-600 flex items-center gap-1.5 font-medium">
-            <Edit3 className="w-3.5 h-3.5 text-purple-700" />
-            <span>{t.quizShortAnswerHint}</span>
-          </div>
-
-          {/* Quick Math Symbols Helper for Students */}
-          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-gray-50 border border-gray-200 text-xs font-mono">
-            <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">
-              {t.quizQuickSymbols || 'Быстрый ввод:'}
-            </span>
-            {[
-              { label: '/ (дробь)', value: '/' },
-              { label: ', (запятая)', value: ',' },
-              { label: '.', value: '.' },
-              { label: '-', value: '-' },
-              { label: '+', value: '+' },
-              { label: '√', value: '√' },
-              { label: 'x²', value: '²' },
-              { label: 'x³', value: '³' },
-              { label: 'π', value: 'π' },
-            ].map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  const updated = currentVal + item.value;
-                  handleTextChange(q.questionNumber, updated);
-                }}
-                className="px-2.5 py-1 rounded bg-white hover:bg-purple-50 active:bg-purple-100 border border-gray-300 hover:border-purple-300 text-gray-800 font-bold text-xs transition-colors shadow-2xs"
-                title={`Вставить ${item.label}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <input
-              type="text"
-              inputMode="text"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              value={currentVal}
-              onChange={(e) => handleTextChange(q.questionNumber, e.target.value)}
-              onBlur={() => handleSaveTextAnswer(q.questionNumber)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSaveTextAnswer(q.questionNumber);
-                }
-              }}
-              placeholder={t.quizShortAnswerPlaceholder}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 font-mono text-lg font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={() => handleSaveTextAnswer(q.questionNumber)}
-              disabled={isSaving || !currentVal.trim()}
-              className="w-full sm:w-auto py-3 px-6 rounded-lg bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>{t.quizSaveAnswer}</span>
-            </button>
-          </div>
-
-          {/* Real-Time Live Math Preview of Student Input */}
-          {currentVal.trim() && (
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-purple-50/80 border border-purple-200 text-purple-950 shadow-xs animate-in fade-in-50 duration-200">
-              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-700 shrink-0 uppercase tracking-wider">
-                <Eye className="w-3.5 h-3.5" />
-                <span>{t.quizPreviewFormula || 'Предпросмотр:'}</span>
-              </div>
-              <div className="text-base sm:text-lg font-bold text-gray-950 overflow-x-auto no-scrollbar py-0.5">
-                <MathRenderer content={currentVal} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const renderShortAnswerCard = (q: QuestionData) => (
+    <ShortAnswerCard
+      key={q.questionNumber}
+      question={q}
+      answerText={answers[q.questionNumber]?.answerText || ''}
+      isSaved={Boolean(savedMap[q.questionNumber] && answers[q.questionNumber]?.answerText?.trim())}
+      isSaving={Boolean(savingMap[q.questionNumber])}
+      onSaveText={handleSaveTextAnswer}
+      onTextChange={handleTextChange}
+      t={t}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] flex flex-col font-sans select-none relative pb-24">
@@ -571,8 +647,8 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
 
       {/* 1 & 2. Sticky Header and Quick Navigation Matrix */}
       <div className="sticky top-0 z-30 shadow-md">
-        {/* HEMIS Top Header Bar */}
-        <header className="bg-[#25718f] text-white px-3 sm:px-4 py-2 sm:py-2.5 border-b border-[#1f5f79]">
+        {/* HEMIS Top Header Bar with Mobile Safe Area */}
+        <header className="bg-[#25718f]/95 backdrop-blur-md text-white px-3 sm:px-4 py-2 sm:py-2.5 border-b border-[#1f5f79] pt-safe shadow-sm">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
             {/* Top row on mobile / Left group on desktop */}
             <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
@@ -698,11 +774,11 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                           key={q.questionNumber}
                           type="button"
                           onClick={() => scrollToQuestion(q.questionNumber)}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                             isSaving
                               ? 'bg-amber-400 text-white animate-pulse'
                               : isAnswered
-                              ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                              ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                               : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
                           }`}
                           title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
@@ -727,11 +803,11 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                           key={q.questionNumber}
                           type="button"
                           onClick={() => scrollToQuestion(q.questionNumber)}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                             isSaving
                               ? 'bg-amber-400 text-white animate-pulse'
                               : isAnswered
-                              ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                              ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                               : 'bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100'
                           }`}
                           title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
@@ -755,11 +831,11 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                         key={q.questionNumber}
                         type="button"
                         onClick={() => scrollToQuestion(q.questionNumber)}
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                           isSaving
                             ? 'bg-amber-400 text-white animate-pulse'
                             : isAnswered
-                            ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                            ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                             : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
                         }`}
                         title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
@@ -838,19 +914,19 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         )}
       </main>
 
-      {/* 4. Sticky Bottom Submission Bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-gray-300 p-2.5 sm:p-4 z-20 shadow-lg">
+      {/* 4. Sticky Bottom Submission Bar with Mobile Safe Area */}
+      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-2.5 sm:p-4 z-20 shadow-lg pb-safe">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#00a65a]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00a65a] animate-pulse" />
               <span className="text-xs font-mono font-bold text-gray-800">
                 {answeredCount}/{totalQuestions}
               </span>
             </div>
-            <div className="w-16 sm:w-36 h-2 bg-gray-200 rounded-full overflow-hidden shrink-0">
+            <div className="w-20 sm:w-44 h-2.5 bg-gray-200 rounded-full overflow-hidden shrink-0">
               <div
-                className="h-full bg-[#00a65a] transition-all duration-300"
+                className="h-full bg-[#00a65a] transition-all duration-500 ease-out rounded-full"
                 style={{ width: `${Math.round((answeredCount / totalQuestions) * 100)}%` }}
               />
             </div>
@@ -859,7 +935,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
           <button
             type="button"
             onClick={() => setShowFinishModal(true)}
-            className="py-2 sm:py-2.5 px-3 sm:px-6 rounded bg-[#25718f] hover:bg-[#1f5f79] active:scale-98 text-white font-bold text-xs font-mono uppercase tracking-wider shadow flex items-center gap-1.5 shrink-0 transition-all"
+            className="py-2.5 px-3.5 sm:px-6 rounded-xl bg-[#25718f] hover:bg-[#1f5f79] active:scale-95 text-white font-bold text-xs sm:text-sm font-mono uppercase tracking-wider shadow-sm flex items-center gap-1.5 shrink-0 transition-all duration-150"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{t.quizSubmitExamBtn} ({answeredCount}/{totalQuestions})</span>

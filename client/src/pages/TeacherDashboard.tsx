@@ -446,9 +446,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const finishedCount = students.filter((s) => s.status === 'FINISHED').length;
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] p-3 sm:p-5 select-none max-w-7xl mx-auto space-y-4 font-sans">
+    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] p-3 sm:p-5 pt-safe pb-safe select-none max-w-7xl mx-auto space-y-4 font-sans animate-fade-in">
       {/* Top Header Card */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 card-interactive">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
             <button

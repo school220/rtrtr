@@ -85,9 +85,9 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md space-y-4 animate-in zoom-in-95 duration-300">
+        <div className="w-full max-w-md space-y-4 animate-pop">
           {/* Radar Pulse Symbol */}
-          <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+          <div className="relative w-16 h-16 mx-auto flex items-center justify-center animate-float">
             <div className="absolute inset-0 rounded-full bg-[#25718f]/20 animate-ping" />
             <div className="relative w-14 h-14 rounded-full bg-[#25718f] text-white flex items-center justify-center shadow-md">
               <Clock className="w-7 h-7 animate-pulse" />
@@ -96,7 +96,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
 
           {/* Status Header */}
           <div className="space-y-1 text-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-100 text-emerald-800 text-xs font-mono font-bold">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold shadow-xs">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{t.waitingConfirmedBadge}</span>
             </div>
@@ -109,7 +109,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
           </div>
 
           {/* Official Candidate Voucher Card */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5 sm:p-6 space-y-4 shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-md card-interactive">
             <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
               <span className="text-xs font-mono text-gray-500 uppercase">{t.waitingCandidate}</span>
               <span className="text-sm font-bold text-gray-900 font-mono">
@@ -119,7 +119,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
 
             <div className="grid grid-cols-2 gap-3 text-center">
               {/* Student ID */}
-              <div className="p-3 rounded bg-cyan-50/50 border border-cyan-200">
+              <div className="p-3.5 rounded-xl bg-cyan-50/50 border border-cyan-200 shadow-2xs">
                 <span className="block text-[10px] font-mono font-bold text-cyan-800 uppercase tracking-wider">
                   {t.waitingStudentId}
                 </span>
@@ -129,7 +129,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
               </div>
 
               {/* Form Variant */}
-              <div className="p-3 rounded bg-purple-50/50 border border-purple-200">
+              <div className="p-3.5 rounded-xl bg-purple-50/50 border border-purple-200 shadow-2xs">
                 <span className="block text-[10px] font-mono font-bold text-purple-800 uppercase tracking-wider">
                   {t.waitingVariant}
                 </span>
@@ -140,7 +140,7 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
             </div>
 
             {/* Exam Specifications */}
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-600 space-y-1">
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-600 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span>{t.waitingSpecRoom}</span>
                 <strong className="text-gray-900 font-bold">#{studentData.gameCode}</strong>

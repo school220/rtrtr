@@ -48,9 +48,9 @@ export const StudentResult: React.FC<StudentResultProps> = ({
       : 'text-rose-700 border-rose-300 bg-rose-50';
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] flex flex-col font-sans select-none pb-safe">
       {/* Top Header */}
-      <header className="bg-[#25718f] text-white h-14 flex items-center justify-between px-4 sm:px-6 shadow-sm sticky top-0 z-40">
+      <header className="bg-[#25718f] text-white h-14 pt-safe flex items-center justify-between px-4 sm:px-6 shadow-sm sticky top-0 z-40 backdrop-blur-md bg-[#25718f]/95">
         <div className="flex items-center gap-2 font-bold text-base">
           <GraduationCap className="w-5 h-5 text-cyan-200" />
           <span>{isProctorPreview ? t.proctorBannerTitle : t.resultHeader}</span>
@@ -64,10 +64,10 @@ export const StudentResult: React.FC<StudentResultProps> = ({
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md space-y-4 animate-in zoom-in-95 duration-300">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pb-8">
+        <div className="w-full max-w-md space-y-4 animate-pop">
           {/* Official Result Card */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden card-interactive">
             {isDisqualified ? (
               <div className="bg-rose-50 border-b border-rose-200 p-4 text-center">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-rose-100 border border-rose-300 text-rose-800 text-xs font-mono font-bold tracking-wider">
@@ -105,7 +105,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
             {isDisqualified ? (
               <div className="p-6 space-y-4">
                 {/* Disqualification Details Box */}
-                <div className="p-4 rounded-lg bg-rose-50/80 border border-rose-200 space-y-3 text-left">
+                <div className="p-4 rounded-xl bg-rose-50/80 border border-rose-200 space-y-3 text-left">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block font-mono">
                       {t.studentDisqualifiedByLabel}
@@ -133,7 +133,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                 </div>
 
                 {/* Points & Grade Annulled Box */}
-                <div className="p-4 rounded bg-gray-50 border border-gray-200 text-center space-y-1">
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-center space-y-1">
                   <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider block">
                     {t.resultGradeTitle}
                   </span>
@@ -154,7 +154,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                       localStorage.removeItem('student_last_name');
                       onHome();
                     }}
-                    className="w-full py-2.5 px-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                    className="w-full min-h-[48px] py-2.5 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-semibold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                   >
                     <Home className="w-4 h-4" />
                     <span>{t.resultBackBtn}</span>
@@ -164,7 +164,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
             ) : (
               <div className="p-6 space-y-5">
                 {/* Grade Display */}
-                <div className={`p-5 rounded border text-center space-y-1 ${gradeColor}`}>
+                <div className={`p-5 rounded-xl border text-center space-y-1 ${gradeColor} shadow-inner`}>
                   <span className="block text-[11px] font-mono font-bold uppercase tracking-widest text-gray-600">
                     {t.resultGradeTitle}
                   </span>
@@ -179,7 +179,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
 
                 {/* Points Breakdown */}
                 <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-1">
                     <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
                       {t.resultCorrect}
                     </span>
@@ -188,7 +188,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
+                  <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-1">
                     <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
                       {t.resultPercentage}
                     </span>
@@ -199,7 +199,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                 </div>
 
                 {/* Verification Statement */}
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-700 space-y-1 text-left">
+                <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 space-y-1 text-left">
                   <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
                     <span>{t.resultVerifiedTitle}</span>
@@ -212,7 +212,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                 {isProctorPreview && onExitPreview ? (
                   <button
                     onClick={onExitPreview}
-                    className="w-full py-3 px-6 rounded bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow"
+                    className="w-full min-h-[48px] py-3 px-6 rounded-xl bg-[#25718f] hover:bg-[#1f5f79] active:scale-95 text-white font-bold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow"
                   >
                     <Home className="w-4 h-4" />
                     <span>{t.resultBackToTeacherBtn}</span>
@@ -234,7 +234,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                           onHome();
                         }
                       }}
-                      className="w-full py-3 px-6 rounded bg-[#00a65a] hover:bg-emerald-700 text-white font-bold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow"
+                      className="w-full min-h-[48px] py-3 px-6 rounded-xl bg-[#00a65a] hover:bg-emerald-700 active:scale-95 text-white font-bold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow"
                     >
                       <FileCheck className="w-4 h-4" />
                       <span>{t.resultStartNewBtn}</span>
@@ -251,7 +251,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                         localStorage.removeItem('student_last_name');
                         onHome();
                       }}
-                      className="w-full py-2.5 px-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                      className="w-full min-h-[44px] py-2.5 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-semibold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                     >
                       <Home className="w-4 h-4" />
                       <span>{t.resultBackBtn}</span>

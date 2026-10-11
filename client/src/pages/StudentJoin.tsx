@@ -118,10 +118,10 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
 
       {/* Main Registration Area */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md space-y-4 animate-in fade-in duration-300">
+        <div className="w-full max-w-md space-y-4 animate-pop">
           {/* Card Form */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gray-50 border-b border-gray-200 p-4 text-center">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-md overflow-hidden card-interactive">
+            <div className="bg-gray-50/80 border-b border-gray-200 p-4 sm:p-5 text-center">
               <span className="text-[11px] font-mono uppercase tracking-widest text-[#25718f] font-bold block">
                 {t.joinBadge}
               </span>
@@ -135,7 +135,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
 
             <div className="p-5 sm:p-6 space-y-5">
               {error && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2 animate-slide-up">
                   <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -149,7 +149,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                 className="space-y-4"
               >
                 {/* Session Code */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="block text-xs font-mono uppercase font-bold text-gray-700 tracking-wider">
                     {t.joinPinLabel}
                   </label>
@@ -160,7 +160,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                       value={gameCode}
                       onChange={(e) => setGameCode(e.target.value.toUpperCase())}
                       placeholder={t.joinPinPlaceholder}
-                      className="w-full px-3 py-2.5 rounded border border-gray-300 focus:border-[#25718f] focus:ring-1 focus:ring-[#25718f] text-base font-mono font-bold tracking-widest text-gray-900 uppercase placeholder:text-gray-400 transition-all pl-10"
+                      className="w-full px-3 py-3 rounded-xl border border-gray-300 focus:border-[#25718f] focus:ring-2 focus:ring-[#25718f]/20 text-base font-mono font-bold tracking-widest text-gray-900 uppercase placeholder:text-gray-400 transition-all pl-10"
                       autoComplete="off"
                     />
                     <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -168,7 +168,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                 </div>
 
                 {/* Last Name */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="block text-xs font-mono uppercase font-bold text-gray-700 tracking-wider">
                     {t.joinLastNameLabel}
                   </label>
@@ -178,7 +178,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder={t.joinLastNamePlaceholder}
-                      className="w-full px-3 py-2.5 rounded border border-gray-300 focus:border-[#25718f] focus:ring-1 focus:ring-[#25718f] text-sm font-semibold text-gray-900 placeholder:text-gray-400 transition-all pl-10"
+                      className="w-full px-3 py-3 rounded-xl border border-gray-300 focus:border-[#25718f] focus:ring-2 focus:ring-[#25718f]/20 text-base font-semibold text-gray-900 placeholder:text-gray-400 transition-all pl-10"
                       autoComplete="off"
                     />
                     <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -186,7 +186,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                 </div>
 
                 {/* First Name */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <label className="block text-xs font-mono uppercase font-bold text-gray-700 tracking-wider">
                     {t.joinFirstNameLabel}
                   </label>
@@ -196,14 +196,14 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder={t.joinFirstNamePlaceholder}
-                      className="w-full px-3 py-2.5 rounded border border-gray-300 focus:border-[#25718f] focus:ring-1 focus:ring-[#25718f] text-sm font-semibold text-gray-900 placeholder:text-gray-400 transition-all pl-10"
+                      className="w-full px-3 py-3 rounded-xl border border-gray-300 focus:border-[#25718f] focus:ring-2 focus:ring-[#25718f]/20 text-base font-semibold text-gray-900 placeholder:text-gray-400 transition-all pl-10"
                       autoComplete="off"
                     />
                     <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
 
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-600 space-y-1">
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-600 space-y-1">
                   <div className="flex items-center gap-1.5 text-[#25718f] font-bold">
                     <ShieldCheck className="w-4 h-4 text-[#25718f]" />
                     <span>{t.joinRegTitle}</span>
@@ -213,11 +213,11 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                   <div>{t.joinReg3}</div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pt-1">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 py-3 px-6 rounded bg-[#25718f] hover:bg-[#1f5f79] active:scale-98 text-white font-bold text-xs uppercase tracking-wider shadow transition-all disabled:opacity-50"
+                    className="flex-1 min-h-[48px] py-3 px-6 rounded-xl bg-[#25718f] hover:bg-[#1f5f79] active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
                   >
                     {loading ? t.joinChecking : t.joinSubmitBtn}
                   </button>
@@ -225,7 +225,7 @@ export const StudentJoin: React.FC<StudentJoinProps> = ({ onJoined, onBack, pref
                     <button
                       type="button"
                       onClick={handleClearForm}
-                      className="py-3 px-4 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold text-xs uppercase tracking-wider transition-colors"
+                      className="min-h-[48px] py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 font-semibold text-xs uppercase tracking-wider transition-all"
                     >
                       ✕
                     </button>

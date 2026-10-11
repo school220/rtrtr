@@ -171,6 +171,32 @@ function renderFormattedText(text: string): React.ReactNode {
   });
 }
 
+// Global in-memory HTML cache for parsed KaTeX formulas to guarantee zero rendering lag
+const katexHtmlCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1500;
+
+function getCachedKatex(cleanLatex: string, isBlock: boolean): string {
+  const cacheKey = `${isBlock ? 'B:' : 'I:'}${cleanLatex}`;
+  const hit = katexHtmlCache.get(cacheKey);
+  if (hit !== undefined) return hit;
+
+  try {
+    const rendered = katex.renderToString(cleanLatex, {
+      displayMode: isBlock,
+      throwOnError: false,
+      output: 'html',
+    });
+    if (katexHtmlCache.size >= MAX_CACHE_SIZE) {
+      const keys = Array.from(katexHtmlCache.keys()).slice(0, 400);
+      keys.forEach((k) => katexHtmlCache.delete(k));
+    }
+    katexHtmlCache.set(cacheKey, rendered);
+    return rendered;
+  } catch {
+    return `<span class="text-rose-400 font-mono">${cleanLatex}</span>`;
+  }
+}
+
 /**
  * Parses and renders text containing LaTeX math formulas using KaTeX.
  * Supports:
@@ -179,8 +205,9 @@ function renderFormattedText(text: string): React.ReactNode {
  * - Desmos-style raw math expressions without delimiters (auto-detected and normalized)
  * - Automatic comma decimals (28{,}5) to avoid LaTeX spacing gaps
  * - Markdown formatting in text segments
+ * - Instant in-memory caching to eliminate CPU rendering lag on phones
  */
-export const MathRenderer: React.FC<MathRendererProps> = ({ content, className = '', displayMode = false }) => {
+const MathRendererBase: React.FC<MathRendererProps> = ({ content, className = '', displayMode = false }) => {
   if (!content) return null;
 
   let normalized = normalizeMathText(content);
@@ -217,15 +244,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ content, className =
       }
     }
 
-    try {
-      return katex.renderToString(clean, {
-        displayMode: isBlock,
-        throwOnError: false,
-        output: 'html',
-      });
-    } catch {
-      return `<span class="text-rose-400 font-mono">${latex}</span>`;
-    }
+    return getCachedKatex(clean, isBlock);
   };
 
   // If displayMode is forced and content doesn't have delimiters
@@ -295,3 +314,5 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ content, className =
     </span>
   );
 };
+
+export const MathRenderer = React.memo(MathRendererBase);
