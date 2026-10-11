@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS forms (
   CONSTRAINT uq_teacher_form UNIQUE (teacher_id, form_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_forms_teacher_form ON forms(teacher_id, form_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_forms_teacher_form ON forms(teacher_id, form_id);
 
 -- Questions (Repository of test questions, supports thousands of items)
 CREATE TABLE IF NOT EXISTS questions (
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS form_questions (
   CONSTRAINT uq_teacher_form_question UNIQUE (teacher_id, form_id, question_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(teacher_id, form_id, question_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(teacher_id, form_id, question_number);
 
 -- Students (Student participants in a game room)
 CREATE TABLE IF NOT EXISTS students (

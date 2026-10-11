@@ -104,12 +104,16 @@ export async function runMigrations(): Promise<void> {
     }
   }
 
-  // 3. Drop obsolete legacy constraints on existing tables if needed
+  // 3. Drop obsolete legacy constraints on existing tables and ensure unique indices
   try {
-    await db.query(`ALTER TABLE forms DROP CONSTRAINT IF EXISTS forms_form_id_key`);
-  } catch {}
-  try {
-    await db.query(`ALTER TABLE form_questions DROP CONSTRAINT IF EXISTS uq_form_question_number`);
+    await db.exec(`
+      ALTER TABLE forms DROP CONSTRAINT IF EXISTS forms_form_id_key CASCADE;
+      DROP INDEX IF EXISTS idx_forms_teacher_form;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_forms_teacher_form ON forms(teacher_id, form_id);
+      ALTER TABLE form_questions DROP CONSTRAINT IF EXISTS uq_form_question_number CASCADE;
+      DROP INDEX IF EXISTS idx_form_questions_lookup;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(teacher_id, form_id, question_number);
+    `);
   } catch {}
 
   // 4. Now execute the full schema.sql (tables, constraints, indices)
