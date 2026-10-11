@@ -26,6 +26,7 @@ import {
 import { useLanguage } from '../context/LanguageContext.js';
 import { LanguageSelector } from '../components/LanguageSelector.js';
 import { MathRenderer } from '../components/MathRenderer.js';
+import { MathToolbar } from '../components/MathToolbar.js';
 
 interface TeacherCustomTestsProps {
   onBack: () => void;
@@ -52,6 +53,27 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [previewFormula, setPreviewFormula] = useState<boolean>(true);
+
+  // Active target for Desmos Math Toolbar insertion
+  const [activeTarget, setActiveTarget] = useState<{
+    qIdx: number;
+    field: 'question' | 'option' | 'free_input';
+    optIdx?: number;
+  } | null>(null);
+
+  const handleInsertMath = (qIdx: number, snippet: string) => {
+    if (activeTarget && activeTarget.qIdx === qIdx && activeTarget.field === 'option' && activeTarget.optIdx !== undefined) {
+      const optIdx = activeTarget.optIdx;
+      const current = questions[qIdx].options?.[optIdx]?.text || '';
+      handleFourOptionTextChange(qIdx, optIdx, current + snippet);
+    } else if (activeTarget && activeTarget.qIdx === qIdx && activeTarget.field === 'free_input') {
+      const current = questions[qIdx].correctAnswer || '';
+      handleFreeInputAnswerChange(qIdx, current + snippet);
+    } else {
+      const current = questions[qIdx].questionText || '';
+      handleQuestionTextChange(qIdx, current + snippet);
+    }
+  };
 
   // Delete Confirm Modal State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -684,22 +706,44 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
                   )}
                 </div>
 
+                {/* Desmos Math Keypad / Toolbar */}
+                <MathToolbar
+                  onInsert={(snippet) => handleInsertMath(qIdx, snippet)}
+                />
+
                 {/* Question Text Input */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700 font-mono">
-                    {t.customTestQuestionTextLabel} *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-700 font-mono">
+                      {t.customTestQuestionTextLabel} *
+                    </label>
+                    {activeTarget?.qIdx === qIdx && (
+                      <span className="text-[10px] font-mono text-[#25718f] font-bold bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                        {activeTarget.field === 'option'
+                          ? `Символы вставляются в вариант ${questions[qIdx].options?.[activeTarget.optIdx ?? 0]?.label}`
+                          : activeTarget.field === 'free_input'
+                          ? 'Символы вставляются в ответ'
+                          : 'Символы вставляются в вопрос'}
+                      </span>
+                    )}
+                  </div>
                   <textarea
                     rows={2}
                     value={q.questionText}
+                    onFocus={() => setActiveTarget({ qIdx, field: 'question' })}
                     onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
                     placeholder={t.customTestQuestionTextPlaceholder}
                     className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#25718f]"
                     disabled={saving}
                   />
                   {previewFormula && q.questionText.trim() && (
-                    <div className="p-2.5 rounded bg-cyan-50/50 border border-cyan-100 text-sm font-medium text-gray-800">
-                      <MathRenderer content={q.questionText} />
+                    <div className="p-3 rounded-lg bg-cyan-50/60 border border-cyan-200 text-sm font-medium text-gray-900 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-mono font-bold text-[#25718f] uppercase tracking-wider block">
+                        Вид формулы (Desmos / KaTeX):
+                      </span>
+                      <div className="text-base font-semibold">
+                        <MathRenderer content={q.questionText} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -709,39 +753,48 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
                   <div className="space-y-2 pt-2 border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs font-mono text-gray-600">
                       <span className="font-bold">{t.customTestOptionsLabel}</span>
-                      <span className="text-[11px] text-gray-400">Нажмите на кружок, чтобы выбрать правильный</span>
+                      <span className="text-[11px] text-gray-400">Нажмите на кружок, чтобы выбрать правильный ответ</span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {q.options?.map((opt, optIdx) => {
                         const isCorrect = opt.isCorrect === true;
                         return (
                           <div
                             key={optIdx}
-                            className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${
+                            className={`p-2.5 rounded-lg border transition-all space-y-1.5 ${
                               isCorrect ? 'border-emerald-400 bg-emerald-50/50 ring-1 ring-emerald-300' : 'border-gray-200 bg-white'
                             }`}
                           >
-                            <button
-                              type="button"
-                              onClick={() => handleSelectCorrectOption(qIdx, optIdx)}
-                              className={`w-7 h-7 rounded-full font-mono text-xs font-bold flex items-center justify-center shrink-0 border transition-all ${
-                                isCorrect
-                                  ? 'bg-[#00a65a] border-[#00a65a] text-white shadow-sm'
-                                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
-                              }`}
-                              title={isCorrect ? 'Правильный ответ' : 'Сделать правильным'}
-                            >
-                              {opt.label}
-                            </button>
-                            <input
-                              type="text"
-                              value={opt.text}
-                              onChange={(e) => handleFourOptionTextChange(qIdx, optIdx, e.target.value)}
-                              placeholder={`${t.customTestOptionPlaceholder} ${opt.label}...`}
-                              className="w-full px-2.5 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#25718f]"
-                              disabled={saving}
-                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectCorrectOption(qIdx, optIdx)}
+                                className={`w-7 h-7 rounded-full font-mono text-xs font-bold flex items-center justify-center shrink-0 border transition-all ${
+                                  isCorrect
+                                    ? 'bg-[#00a65a] border-[#00a65a] text-white shadow-sm'
+                                    : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+                                }`}
+                                title={isCorrect ? 'Правильный ответ' : 'Сделать правильным'}
+                              >
+                                {opt.label}
+                              </button>
+                              <input
+                                type="text"
+                                value={opt.text}
+                                onFocus={() => setActiveTarget({ qIdx, field: 'option', optIdx })}
+                                onChange={(e) => handleFourOptionTextChange(qIdx, optIdx, e.target.value)}
+                                placeholder={`${t.customTestOptionPlaceholder} ${opt.label}...`}
+                                className="w-full px-2.5 py-1.5 border rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#25718f]"
+                                disabled={saving}
+                              />
+                            </div>
+                            {previewFormula && opt.text.trim() && (
+                              <div className="ml-9 px-2 py-1 rounded bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-800 flex items-center gap-1.5">
+                                <span className="text-[9px] text-[#25718f] font-mono font-bold">Вид:</span>
+                                <MathRenderer content={opt.text} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -787,7 +840,7 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
 
                 {/* TYPE 3: FREE INPUT BUILDER */}
                 {q.questionType === 'free_input' && (
-                  <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
                     <label className="text-xs font-bold text-purple-900 font-mono flex items-center gap-1.5">
                       <HelpCircle className="w-3.5 h-3.5 text-purple-700" />
                       {t.customTestCorrectAnswerLabel} *
@@ -795,11 +848,18 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
                     <input
                       type="text"
                       value={q.correctAnswer || ''}
+                      onFocus={() => setActiveTarget({ qIdx, field: 'free_input' })}
                       onChange={(e) => handleFreeInputAnswerChange(qIdx, e.target.value)}
                       placeholder={t.customTestCorrectAnswerPlaceholder}
                       className="w-full px-3 py-2 border border-purple-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-600 bg-purple-50/30"
                       disabled={saving}
                     />
+                    {previewFormula && q.correctAnswer?.trim() && (
+                      <div className="p-2.5 rounded bg-purple-50/60 border border-purple-200 text-xs font-semibold text-purple-900 flex items-center gap-2">
+                        <span className="text-[10px] text-purple-600 font-mono uppercase font-bold">Вид формулы:</span>
+                        <MathRenderer content={q.correctAnswer} />
+                      </div>
+                    )}
                     <p className="text-[11px] text-gray-500 font-mono">
                       Ученик будет вводить ответ вручную. Сервер автоматически сопоставит числовые и текстовые ответы.
                     </p>

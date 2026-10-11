@@ -20,6 +20,7 @@ import { api, FormDetailResponse } from '../services/api.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { LanguageSelector } from '../components/LanguageSelector.js';
 import { MathRenderer } from '../components/MathRenderer.js';
+import { MathToolbar } from '../components/MathToolbar.js';
 
 interface TeacherImportProps {
   onBack: () => void;
@@ -43,6 +44,24 @@ export const TeacherImport: React.FC<TeacherImportProps> = ({ onBack, onStartPro
   const [previewMath, setPreviewMath] = useState(true);
   const [showRawJson, setShowRawJson] = useState(false);
   const [jsonText, setJsonText] = useState('');
+
+  // Active target for Desmos Math Toolbar insertion
+  const [activeTarget, setActiveTarget] = useState<{
+    qIndex: number;
+    field: 'text' | 'option';
+    optIdx?: number;
+  } | null>(null);
+
+  const handleInsertMath = (qIndex: number, snippet: string) => {
+    if (activeTarget && activeTarget.qIndex === qIndex && activeTarget.field === 'option' && activeTarget.optIdx !== undefined) {
+      const optIdx = activeTarget.optIdx;
+      const current = editedQuestions[qIndex].options?.[optIdx]?.text || '';
+      handleUpdateOptionText(qIndex, optIdx, current + snippet);
+    } else {
+      const current = editedQuestions[qIndex].text || '';
+      handleUpdateQuestion(qIndex, 'text', current + snippet);
+    }
+  };
   const [importingJson, setImportingJson] = useState(false);
   const [resultMessage, setResultMessage] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -481,13 +500,28 @@ export const TeacherImport: React.FC<TeacherImportProps> = ({ onBack, onStartPro
                     </div>
                   </div>
 
+                  {/* Desmos Math Keypad / Toolbar */}
+                  <MathToolbar
+                    onInsert={(snippet) => handleInsertMath(qIndex, snippet)}
+                  />
+
                   {/* Question Text Field */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-600 block">
-                      {t.editorQuestionTextLabel}
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-600 block">
+                        {t.editorQuestionTextLabel}
+                      </label>
+                      {activeTarget?.qIndex === qIndex && (
+                        <span className="text-[10px] font-mono text-[#25718f] font-bold bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
+                          {activeTarget.field === 'option'
+                            ? `Символы вставляются в вариант ${editedQuestions[qIndex].options?.[activeTarget.optIdx ?? 0]?.label}`
+                            : 'Символы вставляются в текст вопроса'}
+                        </span>
+                      )}
+                    </div>
                     <textarea
                       value={q.text}
+                      onFocus={() => setActiveTarget({ qIndex, field: 'text' })}
                       onChange={(e) => handleUpdateQuestion(qIndex, 'text', e.target.value)}
                       rows={2}
                       className="w-full p-2.5 rounded border border-gray-300 focus:border-[#25718f] focus:outline-none font-mono text-xs text-gray-900 bg-white"
@@ -495,11 +529,13 @@ export const TeacherImport: React.FC<TeacherImportProps> = ({ onBack, onStartPro
 
                     {/* Math Preview */}
                     {previewMath && q.text && (
-                      <div className="p-2.5 rounded bg-white border border-cyan-100 text-xs text-gray-800 shadow-2xs">
-                        <span className="text-[10px] font-mono font-semibold text-[#25718f] block uppercase tracking-wider mb-1">
-                          KaTeX ko'rinishi:
+                      <div className="p-2.5 rounded bg-white border border-cyan-100 text-xs text-gray-800 shadow-2xs space-y-1">
+                        <span className="text-[10px] font-mono font-semibold text-[#25718f] block uppercase tracking-wider">
+                          KaTeX / Desmos ko'rinishi:
                         </span>
-                        <MathRenderer content={q.text} />
+                        <div className="text-sm font-semibold">
+                          <MathRenderer content={q.text} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -548,6 +584,7 @@ export const TeacherImport: React.FC<TeacherImportProps> = ({ onBack, onStartPro
                               <input
                                 type="text"
                                 value={opt.text}
+                                onFocus={() => setActiveTarget({ qIndex, field: 'option', optIdx })}
                                 onClick={(e) => e.stopPropagation()}
                                 placeholder="Masalan: 212,5"
                                 onChange={(e) => handleUpdateOptionText(qIndex, optIdx, e.target.value)}
