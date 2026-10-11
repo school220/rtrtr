@@ -293,7 +293,7 @@ export const TeacherImport: React.FC<TeacherImportProps> = ({ onBack, onStartPro
         </div>
 
         <div className="flex items-center gap-2">
-          <LanguageSelector />
+          <LanguageSelector variant="light" />
           <button
             onClick={() => {
               loadStatus();

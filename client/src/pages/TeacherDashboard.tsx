@@ -526,23 +526,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black tracking-widest uppercase text-cyan-800 bg-cyan-100/70 border border-cyan-300/60 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                  <span className="text-[10px] font-black tracking-widest uppercase text-cyan-950 bg-cyan-100 border border-cyan-300 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" />
                     HEMIS PROCTOR
                   </span>
 
-                  <span className="text-[10px] font-black tracking-wider uppercase text-purple-900 bg-purple-100/70 border border-purple-300/60 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span className="text-[10px] font-black tracking-wider uppercase text-purple-950 bg-purple-100 border border-purple-300 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" />
                     <span>{api.getTeacherInfo()?.fullName || 'Экзаменатор'}</span>
                   </span>
 
                   <span
                     className={`text-[10px] px-2.5 py-0.5 rounded-lg font-black uppercase tracking-wider font-mono border shadow-2xs ${
                       isWaiting
-                        ? 'bg-amber-100/80 border-amber-300 text-amber-900'
+                        ? 'bg-amber-100 border-amber-400 text-amber-950'
                         : isInProgress
-                        ? 'bg-cyan-100/80 border-cyan-300 text-cyan-900 animate-pulse'
-                        : 'bg-emerald-100/80 border-emerald-300 text-emerald-900'
+                        ? 'bg-cyan-100 border-cyan-400 text-cyan-950 animate-pulse'
+                        : 'bg-emerald-100 border-emerald-400 text-emerald-950'
                     }`}
                   >
                     {isWaiting ? t.dashStatusWaiting : isInProgress ? t.dashStatusInProgress : t.dashStatusFinished}
@@ -552,7 +552,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5 flex items-center gap-2">
                   <span>{t.dashHeading}</span>
                 </h1>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                <p className="text-xs text-slate-700 font-bold font-mono mt-0.5">
                   {t.dashSession} #{game.id.slice(0, 8).toUpperCase()} • {game.title || 'Математика'}
                 </p>
               </div>
@@ -573,20 +573,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               {/* Quick Refresh */}
               <button
                 onClick={() => gameId && loadDashboard(gameId)}
-                className="p-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-600 hover:text-slate-900 transition-all shadow-xs active:scale-95"
+                className="p-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95 border border-slate-300/80"
                 title={t.dashRefresh}
               >
-                <RefreshCw className="w-4 h-4 text-cyan-600" />
+                <RefreshCw className="w-4 h-4 text-cyan-700" />
               </button>
 
               {/* Slide Drawer Toggle */}
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="px-3.5 py-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-800 font-bold text-xs flex items-center gap-2 shadow-xs transition-all active:scale-95 group"
+                className="px-3.5 py-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-900 font-extrabold text-xs flex items-center gap-2 shadow-xs transition-all active:scale-95 group border border-slate-300/80"
               >
-                <Menu className="w-4 h-4 text-cyan-600 group-hover:rotate-90 transition-transform duration-200" />
-                <span className="hidden sm:inline font-semibold">Меню</span>
-                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                <Menu className="w-4 h-4 text-cyan-700 group-hover:rotate-90 transition-transform duration-200" />
+                <span className="hidden sm:inline font-bold">Меню</span>
+                <span className="w-2 h-2 rounded-full bg-cyan-600 animate-pulse" />
               </button>
 
               {/* Excel Download on Finished */}
@@ -603,7 +603,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                   <button
                     onClick={exportCsv}
-                    className="py-2.5 px-3 rounded-2xl liquid-glass-btn-secondary font-bold text-xs flex items-center gap-1 transition-colors"
+                    className="py-2.5 px-3 rounded-2xl liquid-glass-btn-secondary font-bold text-xs flex items-center gap-1 transition-colors border border-slate-300/80 text-slate-800"
                     title="CSV"
                   >
                     <Download className="w-4 h-4" />
@@ -617,9 +617,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 <button
                   disabled={starting || totalConnected === 0}
                   onClick={handleStartGame}
-                  className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/25 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                  className={`py-2.5 px-5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
+                    starting || totalConnected === 0
+                      ? 'bg-slate-200 text-slate-600 border border-slate-300/90 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-lg shadow-emerald-600/25'
+                  }`}
+                  title={totalConnected === 0 ? 'Ожидание подключения кандидатов' : 'Открыть доступ к началу теста'}
                 >
-                  <Play className="w-4 h-4 fill-white text-white" />
+                  <Play className={`w-4 h-4 ${starting || totalConnected === 0 ? 'text-slate-500 fill-slate-500' : 'fill-white text-white'}`} />
                   <span>{starting ? t.dashStarting : t.dashStartExam}</span>
                 </button>
               )}
@@ -642,66 +647,66 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           {/* ========================================================= */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* Card 1: Game PIN Card */}
-            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm relative group overflow-hidden">
+            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm relative group overflow-hidden border border-white/90">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest font-mono">
                   {t.dashPinLabel}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="p-1.5 rounded-xl liquid-glass-btn-secondary text-cyan-700 hover:text-cyan-900 transition-all text-xs flex items-center gap-1 shadow-2xs"
+                  className="p-1.5 rounded-xl liquid-glass-btn-secondary text-cyan-900 hover:text-cyan-950 transition-all text-xs flex items-center gap-1 shadow-2xs border border-slate-300/80 font-bold"
                   title="Скопировать код"
                 >
                   {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span className="text-[10px] font-mono font-bold">{copiedCode ? 'Скопировано!' : 'Копировать'}</span>
                 </button>
               </div>
-              <div className="text-3xl sm:text-4xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 py-0.5">
+              <div className="text-3xl sm:text-4xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-700 via-teal-700 to-blue-700 py-0.5">
                 {game.code}
               </div>
-              <div className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
+              <div className="text-[11px] text-slate-700 flex items-center gap-1 font-bold">
                 <span>Для входа кандидатов</span>
               </div>
             </div>
 
             {/* Card 2: Connected Candidates */}
-            <div className="p-4 rounded-2xl liquid-glass-card space-y-2 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between font-mono">
+            <div className="p-4 rounded-2xl liquid-glass-card space-y-2 shadow-sm border border-white/90">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest flex items-center justify-between font-mono">
                 <span className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-cyan-600" />
+                  <Users className="w-3.5 h-3.5 text-cyan-700" />
                   <span>{t.dashAttendees}</span>
                 </span>
-                <span className="text-cyan-700 font-bold">{attendanceRate}%</span>
+                <span className="text-cyan-900 font-black">{attendanceRate}%</span>
               </span>
               <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900">
-                {totalConnected} <span className="text-xs text-slate-400 font-semibold font-mono">/ {maxStudents}</span>
+                {totalConnected} <span className="text-xs text-slate-600 font-extrabold font-mono">/ {maxStudents}</span>
               </div>
-              <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-200/90 h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-cyan-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-cyan-600 to-teal-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${attendanceRate}%` }}
                 />
               </div>
             </div>
 
             {/* Card 3: Submitted Work */}
-            <div className="p-4 rounded-2xl liquid-glass-card space-y-2 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between font-mono">
+            <div className="p-4 rounded-2xl liquid-glass-card space-y-2 shadow-sm border border-white/90">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest flex items-center justify-between font-mono">
                 <span className="flex items-center gap-1">
-                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                  <Activity className="w-3.5 h-3.5 text-emerald-700" />
                   <span>{t.dashSubmitted}</span>
                 </span>
-                <span className="text-emerald-700 font-bold">
+                <span className="text-emerald-900 font-black">
                   {students.length > 0 ? Math.round((finishedCount / students.length) * 100) : 0}%
                 </span>
               </span>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-700">
-                {finishedCount} <span className="text-xs text-slate-400 font-semibold font-mono">/ {students.length}</span>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-800">
+                {finishedCount} <span className="text-xs text-slate-600 font-extrabold font-mono">/ {students.length}</span>
               </div>
-              <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-200/90 h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-500 h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${students.length > 0 ? Math.round((finishedCount / students.length) * 100) : 0}%`,
                   }}
@@ -710,14 +715,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
 
             {/* Card 4: Exam Duration / Live Timer */}
-            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between font-mono">
+            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm border border-white/90">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest flex items-center justify-between font-mono">
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-cyan-600" />
+                  <Clock className="w-3.5 h-3.5 text-cyan-700" />
                   <span>{isInProgress ? t.dashTimeRemaining : t.dashTimeDuration}</span>
                 </span>
                 {isWaiting && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold uppercase font-mono">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-950 border border-amber-400 font-black uppercase font-mono">
                     {t.dashSetDuration}
                   </span>
                 )}
@@ -725,7 +730,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
               <div>
                 {isInProgress && game.ends_at ? (
-                  <div className="text-2xl font-black font-mono text-cyan-800">
+                  <div className="text-2xl font-black font-mono text-cyan-900">
                     <TimerDisplay
                       endsAt={game.ends_at}
                       onExpire={() => gameId && loadDashboard(gameId)}
@@ -743,10 +748,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSaveDuration();
                         }}
-                        className="w-14 px-2 py-0.5 text-xs font-mono font-black border border-slate-300 rounded-xl liquid-glass-input text-slate-800 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                        className="w-14 px-2 py-0.5 text-xs font-mono font-black border border-slate-300 rounded-xl liquid-glass-input text-slate-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                         title="Введите минуты"
                       />
-                      <span className="text-xs font-mono text-slate-600 font-bold">{t.dashDurationMinLabel}</span>
+                      <span className="text-xs font-mono text-slate-800 font-extrabold">{t.dashDurationMinLabel}</span>
                       <button
                         type="button"
                         disabled={savingDuration || !customMinutes}
@@ -768,8 +773,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           onClick={() => handleQuickSetDuration(mins)}
                           className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-lg transition-all ${
                             Math.round(game.total_time_seconds / 60) === mins
-                              ? 'bg-cyan-600 text-white shadow-xs scale-105'
-                              : 'liquid-glass-btn-secondary text-slate-600 hover:text-slate-900'
+                              ? 'bg-cyan-700 text-white shadow-xs scale-105'
+                              : 'bg-white/80 border border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-950 shadow-2xs'
                           }`}
                         >
                           {mins}м
@@ -786,26 +791,26 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
 
             {/* Card 5: Security & Anti-Cheat Incidents */}
-            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between font-mono">
+            <div className="p-4 rounded-2xl liquid-glass-card space-y-1.5 shadow-sm border border-white/90">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest flex items-center justify-between font-mono">
                 <span className="flex items-center gap-1">
                   {totalIncidents > 0 ? (
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                   ) : (
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                   )}
                   <span>{t.dashIncidents}</span>
                 </span>
-                <span className={`text-[10px] font-bold uppercase font-mono ${totalIncidents > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                <span className={`text-[10px] font-black uppercase font-mono ${totalIncidents > 0 ? 'text-rose-700' : 'text-emerald-800'}`}>
                   {totalIncidents > 0 ? 'Внимание' : 'Чисто'}
                 </span>
               </span>
 
-              <div className={`text-2xl sm:text-3xl font-black font-mono ${totalIncidents > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+              <div className={`text-2xl sm:text-3xl font-black font-mono ${totalIncidents > 0 ? 'text-rose-600' : 'text-emerald-800'}`}>
                 {totalIncidents}
               </div>
 
-              <div className="text-[11px] text-slate-500 font-mono">
+              <div className="text-[11px] text-slate-700 font-bold font-mono">
                 {totalIncidents === 0 ? 'Нарушений не зафиксировано' : 'Зафиксированы попытки списания'}
               </div>
             </div>
@@ -833,11 +838,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <div>
                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 uppercase tracking-wide">
                   <span>{t.dashTableTitle}</span>
-                  <span className="text-xs font-mono font-bold text-cyan-800 bg-cyan-100/90 px-2 py-0.5 rounded-lg border border-cyan-200">
+                  <span className="text-xs font-mono font-black text-cyan-950 bg-cyan-100 px-2 py-0.5 rounded-lg border border-cyan-300">
                     {students.length}
                   </span>
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-700 font-medium mt-0.5">
                   {t.dashTableSub}
                 </p>
               </div>
@@ -847,19 +852,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <div className="flex items-center gap-2.5 flex-wrap flex-1 justify-end max-w-xl">
               {/* Search Input */}
               <div className="relative min-w-[200px] flex-1 sm:flex-initial">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Поиск по имени или ID..."
-                  className="w-full pl-8 pr-3 py-1.5 rounded-2xl liquid-glass-input text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-2xl liquid-glass-input text-xs text-slate-900 placeholder-slate-500 font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -867,7 +872,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
 
               {/* Quick Status Filter Pills */}
-              <div className="flex items-center gap-1 bg-white/60 p-1 rounded-2xl border border-slate-200 text-xs shadow-2xs">
+              <div className="flex items-center gap-1 bg-white/70 p-1 rounded-2xl border border-slate-300/80 text-xs shadow-2xs">
                 {(
                   [
                     { id: 'all', label: `Все (${students.length})` },
@@ -883,10 +888,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     key={chip.id}
                     type="button"
                     onClick={() => setFilterStatus(chip.id)}
-                    className={`px-2.5 py-1 rounded-xl font-bold text-[11px] transition-all ${
+                    className={`px-2.5 py-1 rounded-xl font-extrabold text-[11px] transition-all ${
                       filterStatus === chip.id
-                        ? 'bg-cyan-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                        ? 'bg-cyan-700 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-slate-950 hover:bg-white bg-white/60 border border-slate-200/80 shadow-2xs'
                     }`}
                   >
                     {chip.label}
@@ -898,19 +903,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           {/* Empty State or Table */}
           {filteredStudents.length === 0 ? (
-            <div className="py-20 text-center text-slate-500 text-sm space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-white/70 border border-slate-200 flex items-center justify-center mx-auto text-slate-400 shadow-sm">
+            <div className="py-20 text-center text-slate-600 text-sm space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-white/80 border border-slate-300 flex items-center justify-center mx-auto text-slate-500 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <p className="font-bold text-slate-800 text-base">
+                <p className="font-black text-slate-900 text-base">
                   {students.length === 0 ? t.dashEmptyTitle : 'Нет кандидатов по заданному фильтру'}
                 </p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <p className="text-xs text-slate-700 font-medium max-w-sm mx-auto">
                   {students.length === 0 ? (
                     <>
                       {t.dashEmptyHint}{' '}
-                      <strong className="text-cyan-700 font-mono text-base block mt-1 tracking-widest">{game.code}</strong>
+                      <strong className="text-cyan-800 font-mono text-xl block mt-1 tracking-widest">{game.code}</strong>
                     </>
                   ) : (
                     'Попробуйте изменить поисковый запрос или фильтр статуса'
@@ -921,7 +926,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white/70 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                <thead className="bg-white/80 text-slate-800 text-xs font-black uppercase tracking-wider border-b border-slate-200">
                   <tr>
                     <th
                       onClick={() => toggleSort('id')}
@@ -1495,11 +1500,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       {api.getTeacherInfo()?.fullName || 'Проверяющий'}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-100/90 border border-cyan-300 text-cyan-900 font-bold">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-lg bg-cyan-100 border border-cyan-300 text-cyan-950 font-black">
                         {api.getTeacherInfo()?.role || 'ЭКЗАМЕНАТОР'}
                       </span>
                       {api.getTeacherInfo()?.username && (
-                        <span className="text-[11px] text-slate-500 font-mono">
+                        <span className="text-[11px] text-slate-700 font-mono font-bold">
                           @{api.getTeacherInfo()?.username}
                         </span>
                       )}
@@ -1509,7 +1514,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                 <button
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 rounded-xl liquid-glass-btn-secondary text-slate-500 hover:text-slate-900 transition-colors"
+                  className="p-2 rounded-xl liquid-glass-btn-secondary text-slate-600 hover:text-slate-950 transition-colors border border-slate-300/80"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1519,7 +1524,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <div className="flex-1 overflow-y-auto p-5 space-y-5">
                 {/* HERO ACTION: CREATE NEW TEST BUTTON */}
                 <div className="space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-800 font-mono">
+                  <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-950 font-mono">
                     Быстрое создание:
                   </span>
                   <button
@@ -1527,7 +1532,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       setShowCreateTestModal(true);
                     }}
-                    className="w-full p-4 rounded-3xl bg-gradient-to-r from-cyan-500 via-teal-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-black shadow-lg shadow-cyan-600/25 flex items-center gap-3.5 transition-all transform hover:scale-[1.01] active:scale-[0.98] group"
+                    className="w-full p-4 rounded-3xl bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-black shadow-lg shadow-cyan-600/25 flex items-center gap-3.5 transition-all transform hover:scale-[1.01] active:scale-[0.98] group"
                   >
                     <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform">
                       <Sparkles className="w-6 h-6 text-white" />
@@ -1536,7 +1541,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <div className="font-black text-sm tracking-wide">
                         ✨ Создать новый тест
                       </div>
-                      <div className="text-[11px] font-medium text-white/90 mt-0.5">
+                      <div className="text-[11px] font-bold text-white mt-0.5 drop-shadow-xs">
                         Полноэкранная студия с вариантами и формулами Desmos
                       </div>
                     </div>
@@ -1545,7 +1550,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                 {/* Navigation Items */}
                 <div className="space-y-2 pt-2">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 font-mono">
+                  <span className="text-xs uppercase font-extrabold tracking-wider text-slate-700 font-mono">
                     Разделы и функции:
                   </span>
 
@@ -1556,14 +1561,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         onOpenCustomTests();
                       }}
-                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group"
+                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group border border-slate-200/90"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 group-hover:scale-105 transition-transform">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 border border-purple-300 flex items-center justify-center text-purple-800 group-hover:scale-105 transition-transform">
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-slate-900 font-bold">{t.dashMyTestsBtn}</div>
-                        <div className="text-[11px] text-slate-500">Список ваших авторских тестов</div>
+                        <div className="text-slate-900 font-extrabold text-sm">{t.dashMyTestsBtn}</div>
+                        <div className="text-[11px] text-slate-600 font-medium">Список ваших авторских тестов</div>
                       </div>
                     </button>
                   )}
@@ -1574,14 +1579,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       setShowNewExamModal(true);
                     }}
-                    className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group"
+                    className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group border border-slate-200/90"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 group-hover:scale-105 transition-transform">
                       <PlusCircle className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-slate-900 font-bold">{t.dashNewExamBtn}</div>
-                      <div className="text-[11px] text-slate-500">Создать новую комнату для экзамена</div>
+                      <div className="text-slate-900 font-extrabold text-sm">{t.dashNewExamBtn}</div>
+                      <div className="text-[11px] text-slate-600 font-medium">Создать новую комнату для экзамена</div>
                     </div>
                   </button>
 
@@ -1592,14 +1597,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         onOpenImport();
                       }}
-                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group"
+                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group border border-slate-200/90"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center text-cyan-700 group-hover:scale-105 transition-transform">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-100 border border-cyan-300 flex items-center justify-center text-cyan-800 group-hover:scale-105 transition-transform">
                         <FileEdit className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-slate-900 font-bold">{t.dashEditQuestionsBtn}</div>
-                        <div className="text-[11px] text-slate-500">Банк заданий и эталоны ответов</div>
+                        <div className="text-slate-900 font-extrabold text-sm">{t.dashEditQuestionsBtn}</div>
+                        <div className="text-[11px] text-slate-600 font-medium">Банк заданий и эталоны ответов</div>
                       </div>
                     </button>
                   )}
@@ -1611,14 +1616,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         setShowProctorPreviewModal(true);
                       }}
-                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group"
+                      className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group border border-slate-200/90"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 group-hover:scale-105 transition-transform">
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 group-hover:scale-105 transition-transform">
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-slate-900 font-bold">{t.dashProctorPreviewBtn}</div>
-                        <div className="text-[11px] text-slate-500">{t.dashProctorPreviewDesc}</div>
+                        <div className="text-slate-900 font-extrabold text-sm">{t.dashProctorPreviewBtn}</div>
+                        <div className="text-[11px] text-slate-600 font-medium">{t.dashProctorPreviewDesc}</div>
                       </div>
                     </button>
                   )}
@@ -1629,25 +1634,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       handleOpenSessionsModal();
                     }}
-                    className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group"
+                    className="w-full p-3.5 rounded-2xl liquid-glass-card hover:bg-white text-slate-800 flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-2xs group border border-slate-200/90"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center text-blue-800 group-hover:scale-105 transition-transform">
                       <Layers className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-slate-900 font-bold">{t.dashSessionsBtn}</div>
-                      <div className="text-[11px] text-slate-500">Журнал прошедших сессий</div>
+                      <div className="text-slate-900 font-extrabold text-sm">{t.dashSessionsBtn}</div>
+                      <div className="text-[11px] text-slate-600 font-medium">Журнал прошедших сессий</div>
                     </div>
                   </button>
                 </div>
 
                 {/* Language Selector */}
-                <div className="space-y-1.5 pt-2 border-t border-slate-200/80">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 font-mono">
+                <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                  <span className="text-xs uppercase font-extrabold tracking-wider text-slate-700 font-mono">
                     Язык интерфейса:
                   </span>
-                  <div className="liquid-glass-card p-2 rounded-2xl">
-                    <LanguageSelector />
+                  <div className="liquid-glass-card p-2 rounded-2xl border border-slate-200/90 bg-white/80">
+                    <LanguageSelector variant="light" />
                   </div>
                 </div>
               </div>

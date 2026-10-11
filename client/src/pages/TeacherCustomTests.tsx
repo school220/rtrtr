@@ -120,12 +120,12 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black tracking-widest uppercase text-cyan-800 bg-cyan-100/70 border border-cyan-300/60 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                  <span className="text-[10px] font-black tracking-widest uppercase text-cyan-950 bg-cyan-100 border border-cyan-300 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-600 animate-pulse" />
                     HEMIS МОДУЛЬ ТЕСТОВ
                   </span>
-                  <span className="text-[10px] font-black tracking-wider uppercase text-purple-900 bg-purple-100/70 border border-purple-300/60 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span className="text-[10px] font-black tracking-wider uppercase text-purple-950 bg-purple-100 border border-purple-300 px-2.5 py-0.5 rounded-lg font-mono flex items-center gap-1.5 shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" />
                     <span>{api.getTeacherInfo()?.fullName || 'Преподаватель'}</span>
                   </span>
                 </div>
@@ -133,7 +133,7 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5">
                   {t.customTestsTitle}
                 </h1>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                <p className="text-xs text-slate-700 font-bold font-mono mt-0.5">
                   {t.customTestsSubtitle}
                 </p>
               </div>
@@ -141,16 +141,16 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
 
             {/* Right Header Buttons */}
             <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="liquid-glass-card rounded-2xl p-1">
-                <LanguageSelector />
+              <div className="liquid-glass-card rounded-2xl p-1 border border-slate-200/90 bg-white/80">
+                <LanguageSelector variant="light" />
               </div>
 
               <button
                 onClick={loadTests}
-                className="p-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-600 hover:text-slate-900 transition-all shadow-xs active:scale-95"
+                className="p-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-800 hover:text-slate-950 transition-all shadow-xs active:scale-95 border border-slate-300/80"
                 title="Обновить список"
               >
-                <RefreshCw className={`w-4 h-4 text-cyan-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-cyan-700 ${loading ? 'animate-spin' : ''}`} />
               </button>
 
               <button

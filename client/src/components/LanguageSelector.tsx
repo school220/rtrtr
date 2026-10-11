@@ -4,9 +4,10 @@ import { useLanguage } from '../context/LanguageContext.js';
 
 interface LanguageSelectorProps {
   className?: string;
+  variant?: 'light' | 'dark';
 }
 
-export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '' }) => {
+export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '', variant = 'dark' }) => {
   const { lang, setLang } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,12 +27,16 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = 
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 text-white font-medium text-xs transition-colors select-none"
+        className={
+          variant === 'light'
+            ? 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300/80 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs shadow-2xs transition-all select-none'
+            : 'flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 text-white font-medium text-xs transition-colors select-none'
+        }
         title="Tilni o'zgartirish / Сменить язык"
       >
-        <Globe className="w-3.5 h-3.5 text-cyan-200" />
+        <Globe className={`w-3.5 h-3.5 ${variant === 'light' ? 'text-cyan-700' : 'text-cyan-200'}`} />
         <span>{lang === 'uz' ? "O'zbekcha" : 'Русский'}</span>
-        <ChevronDown className="w-3 h-3 text-white/70" />
+        <ChevronDown className={`w-3 h-3 ${variant === 'light' ? 'text-slate-600' : 'text-white/70'}`} />
       </button>
 
       {isOpen && (

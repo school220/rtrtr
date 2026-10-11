@@ -131,7 +131,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
             <Building2 className="w-4 h-4 text-cyan-600" />
             <span>Toshkent Davlat Universiteti</span>
           </div>
-          <LanguageSelector />
+          <LanguageSelector variant="light" />
         </div>
       </header>
 
