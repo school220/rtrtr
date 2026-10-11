@@ -49,18 +49,42 @@ export class TeacherService {
     const username = config.teacherAuth.username || 'proctor_admin';
     const password = config.teacherAuth.password || 'ProctorMath2026!';
 
-    const existing = await db.query('SELECT id FROM teachers WHERE username = $1', [username]);
+    const existing = await db.query('SELECT id, password_hash FROM teachers WHERE username = $1', [username]);
     if (existing.rows.length > 0) {
+      if (!existing.rows[0].password_hash || !existing.rows[0].password_hash.includes(':')) {
+        const passwordHash = this.hashPassword(password);
+        await db.query('UPDATE teachers SET password_hash = $1 WHERE id = $2', [passwordHash, existing.rows[0].id]);
+      }
       return existing.rows[0].id;
     }
 
     const passwordHash = this.hashPassword(password);
+
+    // If an examiner with id=1 already exists (e.g. from initial migration seed), adopt it as root
+    const id1 = await db.query('SELECT id FROM teachers WHERE id = 1');
+    if (id1.rows.length > 0) {
+      await db.query(
+        `UPDATE teachers 
+         SET username = $1, password_hash = $2, full_name = $3, role = 'COMMISSION_CHAIR'
+         WHERE id = 1`,
+        [username, passwordHash, 'Председатель комиссии']
+      );
+      try {
+        await db.query(`SELECT setval('teachers_id_seq', GREATEST(1, (SELECT MAX(id) FROM teachers)))`);
+      } catch {}
+      return 1;
+    }
+
     const insertRes = await db.query(
       `INSERT INTO teachers (username, password_hash, full_name, role)
        VALUES ($1, $2, $3, 'COMMISSION_CHAIR')
        RETURNING id`,
       [username, passwordHash, 'Председатель комиссии']
     );
+
+    try {
+      await db.query(`SELECT setval('teachers_id_seq', GREATEST(1, (SELECT MAX(id) FROM teachers)))`);
+    } catch {}
 
     const rootId = insertRes.rows[0]?.id || 1;
     return rootId;
