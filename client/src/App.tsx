@@ -4,20 +4,49 @@ import { StudentJoin } from './pages/StudentJoin.js';
 import { StudentWaiting } from './pages/StudentWaiting.js';
 import { StudentQuiz } from './pages/StudentQuiz.js';
 import { StudentResult } from './pages/StudentResult.js';
+import { TeacherLogin } from './pages/TeacherLogin.js';
 import { TeacherDashboard } from './pages/TeacherDashboard.js';
 import { TeacherImport } from './pages/TeacherImport.js';
-import { TeacherAuthModal } from './components/TeacherAuthModal.js';
 import { useSocket } from './hooks/useSocket.js';
 import { JoinGameResponse, StudentStateResponse, api } from './services/api.js';
 
-type ViewMode = 'home' | 'student_join' | 'student_waiting' | 'student_quiz' | 'student_result' | 'teacher' | 'import';
+type ViewMode =
+  | 'home'
+  | 'student_join'
+  | 'student_waiting'
+  | 'student_quiz'
+  | 'student_result'
+  | 'teacher_login'
+  | 'teacher'
+  | 'import';
+
+/**
+ * Checks if current browser URL corresponds to the private teacher/proctor portal
+ */
+const isTeacherRoute = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  return (
+    path.startsWith('/teacher') ||
+    path.startsWith('/proctor') ||
+    path.startsWith('/admin') ||
+    search.includes('role=teacher') ||
+    search.includes('mode=teacher')
+  );
+};
 
 export const App: React.FC = () => {
-  const [view, setView] = useState<ViewMode>('home');
+  // Path-aware initialization: /teacher routes load dedicated proctor portal
+  const [view, setView] = useState<ViewMode>(() => {
+    if (isTeacherRoute()) {
+      return api.isTeacherAuthenticated() ? 'teacher' : 'teacher_login';
+    }
+    return 'home';
+  });
+
   const [studentData, setStudentData] = useState<JoinGameResponse | null>(null);
   const [studentState, setStudentState] = useState<StudentStateResponse | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [targetAuthView, setTargetAuthView] = useState<'teacher' | 'import'>('teacher');
   const [isProctorPreview, setIsProctorPreview] = useState(false);
   const [proctorReturnView, setProctorReturnView] = useState<'teacher' | 'import'>('teacher');
   const { socket } = useSocket();
@@ -33,6 +62,22 @@ export const App: React.FC = () => {
     setStudentData(null);
     setStudentState(null);
   };
+
+  // Browser navigation (Back / Forward button) handler
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isTeacherRoute()) {
+        setView(api.isTeacherAuthenticated() ? 'teacher' : 'teacher_login');
+      } else {
+        const savedToken = localStorage.getItem('student_session_token');
+        if (!savedToken) {
+          setView('home');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Launch proctor preview mode for variant 1..50
   const handleStartProctorPreview = async (formId: number = 1, returnTo: 'teacher' | 'import' = 'teacher') => {
@@ -55,8 +100,10 @@ export const App: React.FC = () => {
     setView(proctorReturnView);
   };
 
-  // Check saved session on initial load
+  // Check saved student session on initial load (only when not on teacher route)
   useEffect(() => {
+    if (isTeacherRoute()) return;
+
     const savedToken = localStorage.getItem('student_session_token');
     const savedGameId = localStorage.getItem('student_game_id');
     const savedStudentId = localStorage.getItem('student_id');
@@ -66,7 +113,6 @@ export const App: React.FC = () => {
       api
         .getStudentState(savedGameId, sId)
         .then((state) => {
-          // If the test was already finished, do not trap the student in the results screen on fresh app open!
           if (state.gameStatus === 'FINISHED' || state.student.status === 'FINISHED') {
             clearStudentSession();
             return;
@@ -94,7 +140,6 @@ export const App: React.FC = () => {
           }
         })
         .catch(() => {
-          // Token expired or invalid
           clearStudentSession();
         });
     }
@@ -111,12 +156,16 @@ export const App: React.FC = () => {
   };
 
   // Game Started Broadcast Event
-  const handleGameStarted = (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => {
-    setStudentData((prev) => prev ? {
-      ...prev,
-      gameStatus: 'IN_PROGRESS',
-      endsAt: data.endsAt,
-    } : null);
+  const handleGameStarted = (data: { startedAt: string; endsAt: string }) => {
+    setStudentData((prev) =>
+      prev
+        ? {
+            ...prev,
+            gameStatus: 'IN_PROGRESS',
+            endsAt: data.endsAt,
+          }
+        : null
+    );
     setView('student_quiz');
   };
 
@@ -131,42 +180,36 @@ export const App: React.FC = () => {
     setView('student_join');
   };
 
-  // Reset to Home
+  // Reset to Student Home
   const handleResetHome = () => {
     if (view === 'student_result' || studentState?.student?.status === 'FINISHED') {
       clearStudentSession();
     }
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.pushState(null, '', '/');
+    }
     setView('home');
+  };
+
+  // Teacher Logout Handler
+  const handleTeacherLogout = async () => {
+    await api.teacherLogout();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/teacher') {
+      window.history.replaceState(null, '', '/teacher');
+    }
+    setView('teacher_login');
   };
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] font-sans">
+      {/* 1. STUDENT PAGES (Pure Student Testing Portal, ZERO teacher links/buttons) */}
       {view === 'home' && (
         <Home
-          onSelectRole={(role) => {
-            if (role === 'student') {
-              setView('student_join');
-            } else if (role === 'teacher' || role === 'import') {
-              if (api.isTeacherAuthenticated()) {
-                setView(role);
-              } else {
-                setTargetAuthView(role);
-                setShowAuthModal(true);
-              }
-            }
+          onSelectRole={() => {
+            setView('student_join');
           }}
         />
       )}
-
-      {/* Proctor Authentication Gate Modal */}
-      <TeacherAuthModal
-        isOpen={showAuthModal}
-        onSuccess={() => {
-          setShowAuthModal(false);
-          setView(targetAuthView);
-        }}
-        onCancel={() => setShowAuthModal(false)}
-      />
 
       {view === 'student_join' && (
         <StudentJoin
@@ -204,10 +247,22 @@ export const App: React.FC = () => {
         />
       )}
 
+      {/* 2. DEDICATED TEACHER / PROCTOR PAGES (/teacher URL only) */}
+      {view === 'teacher_login' && (
+        <TeacherLogin
+          onSuccess={() => {
+            if (typeof window !== 'undefined' && window.location.pathname !== '/teacher') {
+              window.history.replaceState(null, '', '/teacher');
+            }
+            setView('teacher');
+          }}
+        />
+      )}
+
       {view === 'teacher' && (
         <TeacherDashboard
           socket={socket}
-          onBack={handleResetHome}
+          onBack={handleTeacherLogout}
           onOpenImport={() => setView('import')}
           onStartProctorPreview={(formId) => handleStartProctorPreview(formId, 'teacher')}
         />

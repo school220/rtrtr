@@ -22,11 +22,18 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
   useEffect(() => {
     if (!socket) return;
 
-    socket.emit('student:join', {
-      gameId: studentData.gameId,
-      studentId: studentData.studentId,
-      sessionToken: studentData.sessionToken,
-    });
+    const emitJoin = () => {
+      socket.emit('student:join', {
+        gameId: studentData.gameId,
+        studentId: studentData.studentId,
+        sessionToken: studentData.sessionToken,
+      });
+    };
+
+    if (socket.connected) {
+      emitJoin();
+    }
+    socket.on('connect', emitJoin);
 
     const handleStart = (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => {
       onGameStarted(data);

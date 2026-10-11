@@ -78,7 +78,9 @@ describe('Proctor Preview Mode Verification', () => {
     const gameId = data.gameId;
 
     // Verify it is excluded from /api/games/active
-    const activeRes = await fetch(`${baseUrl}/api/games/active`);
+    const activeRes = await fetch(`${baseUrl}/api/games/active`, {
+      headers: { Authorization: `Bearer ${teacherToken}` },
+    });
     const activeData = await activeRes.json();
     expect(activeRes.status).toBe(200);
     if (activeData) {
@@ -86,7 +88,9 @@ describe('Proctor Preview Mode Verification', () => {
     }
 
     // Verify it is excluded from /api/games/recent
-    const recentRes = await fetch(`${baseUrl}/api/games/recent`);
+    const recentRes = await fetch(`${baseUrl}/api/games/recent`, {
+      headers: { Authorization: `Bearer ${teacherToken}` },
+    });
     const recentData = await recentRes.json();
     expect(recentRes.status).toBe(200);
     const foundInRecent = recentData.some((g: any) => g.id === gameId);

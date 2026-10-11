@@ -8,8 +8,6 @@ import {
   Award,
   CheckCircle2,
   FileText,
-  Lock,
-  Layers,
   GraduationCap,
   ChevronRight,
   Minus,
@@ -119,22 +117,6 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
               <span>{t.menuTakeExam}</span>
             </button>
 
-            <button
-              onClick={() => onSelectRole('teacher')}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded hover:bg-[#1e282c] hover:text-white transition-colors text-left"
-            >
-              <Lock className="w-4 h-4 text-purple-400" />
-              <span>{t.menuProctoring}</span>
-            </button>
-
-            <button
-              onClick={() => onSelectRole('import')}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded hover:bg-[#1e282c] hover:text-white transition-colors text-left"
-            >
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span>{t.menuQuestionBank}</span>
-            </button>
-
             <div className="text-[10px] uppercase font-bold text-slate-500 px-3 py-2 tracking-wider mt-2">
               {t.infoSection}
             </div>
@@ -220,64 +202,38 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
             </div>
 
             {section1Open && (
-              <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* 1. Student Entrance Card */}
+              <div className="p-4 sm:p-6">
                 <div
                   onClick={() => onSelectRole('student')}
-                  className="group bg-white hover:bg-cyan-50/50 border border-gray-200 hover:border-cyan-400 rounded-lg p-5 flex flex-col items-center text-center cursor-pointer transition-all shadow-sm hover:shadow"
+                  className="group bg-gradient-to-r from-cyan-50/60 via-white to-sky-50/60 hover:from-cyan-100/50 hover:to-sky-100/50 border-2 border-cyan-300 hover:border-[#00c0ef] rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 cursor-pointer transition-all shadow-sm hover:shadow-md"
                 >
-                  <div className="w-16 h-16 rounded-full bg-[#00c0ef] text-white flex items-center justify-center shadow-md mb-3 group-hover:scale-105 transition-transform">
-                    <FileText className="w-8 h-8" />
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                    <div className="w-20 h-20 rounded-2xl bg-[#00c0ef] text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+                      <FileText className="w-10 h-10" />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
+                        <span className="text-[11px] font-mono uppercase tracking-widest text-[#25718f] font-bold bg-cyan-100/70 px-2.5 py-0.5 rounded">
+                          Yakuniy Davlat Nazorati
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded">
+                          Faol sinov
+                        </span>
+                      </div>
+                      <h3 className="font-black text-lg sm:text-xl text-gray-800 uppercase tracking-tight mt-1.5">
+                        {t.studentCardTitle}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl leading-relaxed">
+                        {t.studentCardDesc}. Sinov xonasi PIN-kodini kiriting, avtomatik tartibda shaxsiy variantingizni oling va imtihon topshiring.
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-sm text-gray-800 uppercase tracking-tight">
-                    {t.studentCardTitle}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t.studentCardDesc}
-                  </p>
-                  <div className="mt-4 px-3 py-1 rounded bg-cyan-600 text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 group-hover:bg-cyan-700">
-                    <span>{t.studentCardBtn}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
-                </div>
 
-                {/* 2. Proctor / Teacher Entrance Card */}
-                <div
-                  onClick={() => onSelectRole('teacher')}
-                  className="group bg-white hover:bg-purple-50/50 border border-gray-200 hover:border-purple-400 rounded-lg p-5 flex flex-col items-center text-center cursor-pointer transition-all shadow-sm hover:shadow"
-                >
-                  <div className="w-16 h-16 rounded-full bg-[#605ca8] text-white flex items-center justify-center shadow-md mb-3 group-hover:scale-105 transition-transform">
-                    <Lock className="w-8 h-8" />
-                  </div>
-                  <h3 className="font-bold text-sm text-gray-800 uppercase tracking-tight flex items-center gap-1">
-                    <span>{t.proctorCardTitle}</span>
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t.proctorCardDesc}
-                  </p>
-                  <div className="mt-4 px-3 py-1 rounded bg-[#605ca8] text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 group-hover:bg-[#504c94]">
-                    <span>{t.proctorCardBtn}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                {/* 3. KIM Question Bank Card */}
-                <div
-                  onClick={() => onSelectRole('import')}
-                  className="group bg-white hover:bg-amber-50/50 border border-gray-200 hover:border-amber-400 rounded-lg p-5 flex flex-col items-center text-center cursor-pointer transition-all shadow-sm hover:shadow"
-                >
-                  <div className="w-16 h-16 rounded-full bg-[#f39c12] text-white flex items-center justify-center shadow-md mb-3 group-hover:scale-105 transition-transform">
-                    <Layers className="w-8 h-8" />
-                  </div>
-                  <h3 className="font-bold text-sm text-gray-800 uppercase tracking-tight">
-                    {t.kimCardTitle}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t.kimCardDesc}
-                  </p>
-                  <div className="mt-4 px-3 py-1 rounded bg-[#f39c12] text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 group-hover:bg-amber-600">
-                    <span>{t.kimCardBtn}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                  <div className="shrink-0 w-full sm:w-auto">
+                    <div className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-[#25718f] group-hover:bg-[#1f5f79] text-white text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all">
+                      <span>{t.studentCardBtn}</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
               </div>

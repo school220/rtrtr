@@ -95,6 +95,29 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     };
   }, [socket]);
 
+  // Register student presence and room membership in quiz mode (handles F5 / page reloads)
+  useEffect(() => {
+    if (!socket || isProctorPreview || !gameId || !studentId) return;
+
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('student_session_token') || '' : '';
+    const emitJoin = () => {
+      socket.emit('student:join', {
+        gameId,
+        studentId,
+        sessionToken: token,
+      });
+    };
+
+    if (socket.connected) {
+      emitJoin();
+    }
+    socket.on('connect', emitJoin);
+
+    return () => {
+      socket.off('connect', emitJoin);
+    };
+  }, [socket, gameId, studentId, isProctorPreview]);
+
   const loadState = async () => {
     try {
       const data = await api.getStudentState(gameId, studentId);
