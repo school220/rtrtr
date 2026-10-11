@@ -608,7 +608,7 @@ export class GameService {
     let questions: StudentSafeQuestion[] = [];
 
     if (game.custom_test_id) {
-      questions = await CustomTestService.getQuestionsForStudent(game.custom_test_id);
+      questions = await CustomTestService.getQuestionsForStudent(game.custom_test_id, student.form_id);
       totalQuestions = questions.length;
     } else {
       questions = await QuestionService.getAllQuestionsForStudent(student.form_id, game.teacher_id || 1);

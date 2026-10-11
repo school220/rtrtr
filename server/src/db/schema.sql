@@ -26,10 +26,11 @@ CREATE TABLE IF NOT EXISTS custom_tests (
 
 CREATE INDEX IF NOT EXISTS idx_custom_tests_teacher ON custom_tests(teacher_id);
 
--- Custom Test Questions (Questions belonging to teacher-authored tests)
+-- Custom Test Questions (Questions belonging to teacher-authored tests, with variant support)
 CREATE TABLE IF NOT EXISTS custom_test_questions (
   id SERIAL PRIMARY KEY,
   test_id VARCHAR(36) NOT NULL REFERENCES custom_tests(id) ON DELETE CASCADE,
+  variant_number INT NOT NULL DEFAULT 1,
   question_number INT NOT NULL,
   question_text TEXT NOT NULL,
   question_type VARCHAR(30) NOT NULL, -- 'four_options', 'yes_no', 'free_input'
@@ -37,10 +38,10 @@ CREATE TABLE IF NOT EXISTS custom_test_questions (
   options TEXT, -- JSON array of options: [{"id": 1, "label": "A", "text": "...", "isCorrect": boolean}]
   points INT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT uq_custom_test_question UNIQUE (test_id, question_number)
+  CONSTRAINT uq_custom_test_variant_q UNIQUE (test_id, variant_number, question_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_custom_test_questions_test ON custom_test_questions(test_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_test_questions_test ON custom_test_questions(test_id, variant_number, question_number);
 
 -- Games (Active and historical testing sessions per examiner)
 CREATE TABLE IF NOT EXISTS games (

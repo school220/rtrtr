@@ -1,6 +1,7 @@
 import { getDb, withTransaction } from '../db/index.js';
 import { MathEvaluator } from '../utils/math-evaluator.js';
 import { EventService } from './event.service.js';
+import { CustomTestService } from './custom-test.service.js';
 
 export interface SubmitAnswerParams {
   gameId: string;
@@ -76,15 +77,16 @@ export class AnswerService {
       let points = 0;
 
       if (game.custom_test_id) {
+        const variant = await CustomTestService.getVariantForStudent(game.custom_test_id, student.form_id, db);
         const qRes = await db.query(
           `SELECT id, question_type, points, correct_answer, options
            FROM custom_test_questions
-           WHERE test_id = $1 AND question_number = $2`,
-          [game.custom_test_id, questionNumber]
+           WHERE test_id = $1 AND variant_number = $2 AND question_number = $3`,
+          [game.custom_test_id, variant, questionNumber]
         );
 
         if (qRes.rows.length === 0) {
-          throw new Error(`Вопрос №${questionNumber} не найден в тесте.`);
+          throw new Error(`Вопрос №${questionNumber} не найден в тесте (Вариант ${variant}).`);
         }
         const cq = qRes.rows[0];
         customQuestionId = cq.id;
@@ -206,9 +208,10 @@ export class AnswerService {
       // Next question number
       let totalQuestions = 20;
       if (game.custom_test_id) {
+        const variant = await CustomTestService.getVariantForStudent(game.custom_test_id, student.form_id, db);
         const tCountRes = await db.query(
-          `SELECT COUNT(*)::int as count FROM custom_test_questions WHERE test_id = $1`,
-          [game.custom_test_id]
+          `SELECT COUNT(*)::int as count FROM custom_test_questions WHERE test_id = $1 AND variant_number = $2`,
+          [game.custom_test_id, variant]
         );
         totalQuestions = tCountRes.rows[0]?.count || 1;
       }

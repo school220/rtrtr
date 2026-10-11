@@ -13,6 +13,7 @@ export interface CustomOption {
 }
 
 export interface CustomQuestionInput {
+  variantNumber?: number;
   questionNumber?: number;
   questionText: string;
   questionType: QuestionType;
@@ -24,6 +25,7 @@ export interface CustomQuestionInput {
 export interface CustomQuestionData {
   id: number;
   testId: string;
+  variantNumber: number;
   questionNumber: number;
   questionText: string;
   questionType: QuestionType;
@@ -38,6 +40,7 @@ export interface CustomTestSummary {
   title: string;
   durationMinutes: number;
   questionCount: number;
+  variantCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +50,7 @@ export interface CustomTestDetail {
   teacherId: number;
   title: string;
   durationMinutes: number;
+  variantCount: number;
   createdAt: string;
   updatedAt: string;
   questions: CustomQuestionData[];
@@ -60,7 +64,8 @@ export class CustomTestService {
     const db = client || (await getDb());
     const res = await db.query(
       `SELECT t.id, t.teacher_id, t.title, t.duration_minutes, t.created_at, t.updated_at,
-              COUNT(q.id)::int as question_count
+              COALESCE(MAX(q.question_number), 0)::int as question_count,
+              COALESCE(COUNT(DISTINCT q.variant_number), 0)::int as variant_count
        FROM custom_tests t
        LEFT JOIN custom_test_questions q ON q.test_id = t.id
        WHERE t.teacher_id = $1
@@ -75,6 +80,7 @@ export class CustomTestService {
       title: r.title,
       durationMinutes: r.duration_minutes,
       questionCount: r.question_count,
+      variantCount: Math.max(1, r.variant_count || 1),
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     }));
@@ -100,10 +106,10 @@ export class CustomTestService {
     }
 
     const qRes = await db.query(
-      `SELECT id, test_id, question_number, question_text, question_type, correct_answer, options, points
+      `SELECT id, test_id, variant_number, question_number, question_text, question_type, correct_answer, options, points
        FROM custom_test_questions
        WHERE test_id = $1
-       ORDER BY question_number ASC`,
+       ORDER BY variant_number ASC, question_number ASC`,
       [testId]
     );
 
@@ -120,6 +126,7 @@ export class CustomTestService {
       return {
         id: r.id,
         testId: r.test_id,
+        variantNumber: r.variant_number || 1,
         questionNumber: r.question_number,
         questionText: r.question_text,
         questionType: r.question_type as QuestionType,
@@ -129,11 +136,14 @@ export class CustomTestService {
       };
     });
 
+    const variantCount = Math.max(1, new Set(questions.map((q) => q.variantNumber)).size);
+
     return {
       id: test.id,
       teacherId: test.teacher_id,
       title: test.title,
       durationMinutes: test.duration_minutes,
+      variantCount,
       createdAt: test.created_at,
       updatedAt: test.updated_at,
       questions,
@@ -235,14 +245,16 @@ export class CustomTestService {
           optionsToSave = null;
         }
 
+        const variantNum = Math.max(1, parseInt(String(q.variantNumber || 1), 10));
         const points = Math.max(1, q.points || 1);
 
         await db.query(
           `INSERT INTO custom_test_questions
-           (test_id, question_number, question_text, question_type, correct_answer, options, points, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+           (test_id, variant_number, question_number, question_text, question_type, correct_answer, options, points, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
           [
             testId,
+            variantNum,
             qNum,
             qText,
             qType,
@@ -360,14 +372,16 @@ export class CustomTestService {
           optionsToSave = null;
         }
 
+        const variantNum = Math.max(1, parseInt(String(q.variantNumber || 1), 10));
         const points = Math.max(1, q.points || 1);
 
         await db.query(
           `INSERT INTO custom_test_questions
-           (test_id, question_number, question_text, question_type, correct_answer, options, points, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+           (test_id, variant_number, question_number, question_text, question_type, correct_answer, options, points, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
           [
             testId,
+            variantNum,
             qNum,
             qText,
             qType,
@@ -427,16 +441,40 @@ export class CustomTestService {
   }
 
   /**
-   * Retrieves student-safe question list for a custom test
+   * Gets distinct variant numbers configured for a test
    */
-  public static async getQuestionsForStudent(customTestId: string, client?: DbClient): Promise<StudentSafeQuestion[]> {
+  public static async getDistinctVariants(testId: string, client?: DbClient): Promise<number[]> {
     const db = client || (await getDb());
     const res = await db.query(
-      `SELECT id, question_number, question_text, question_type, options
+      `SELECT DISTINCT variant_number FROM custom_test_questions WHERE test_id = $1 ORDER BY variant_number ASC`,
+      [testId]
+    );
+    if (res.rows.length === 0) return [1];
+    return res.rows.map((r) => r.variant_number);
+  }
+
+  /**
+   * Maps student's form_id round-robin to one of the test's variants
+   */
+  public static async getVariantForStudent(testId: string, formId: number = 1, client?: DbClient): Promise<number> {
+    const variants = await this.getDistinctVariants(testId, client);
+    const safeFormId = Math.max(1, parseInt(String(formId || 1), 10));
+    const idx = (safeFormId - 1) % variants.length;
+    return variants[idx];
+  }
+
+  /**
+   * Retrieves student-safe question list for a custom test and student's assigned variant
+   */
+  public static async getQuestionsForStudent(customTestId: string, formId: number = 1, client?: DbClient): Promise<StudentSafeQuestion[]> {
+    const db = client || (await getDb());
+    const variant = await this.getVariantForStudent(customTestId, formId, db);
+    const res = await db.query(
+      `SELECT id, variant_number, question_number, question_text, question_type, options
        FROM custom_test_questions
-       WHERE test_id = $1
+       WHERE test_id = $1 AND variant_number = $2
        ORDER BY question_number ASC`,
-      [customTestId]
+      [customTestId, variant]
     );
 
     return res.rows.map((r) => {
@@ -460,7 +498,7 @@ export class CustomTestService {
 
       return {
         id: r.id,
-        formId: 1,
+        formId: variant,
         questionNumber: r.question_number,
         text: r.question_text,
         type: qType === 'free_input' ? 'short_answer' : 'multiple_choice',
@@ -470,12 +508,12 @@ export class CustomTestService {
   }
 
   /**
-   * Retrieves question count for a custom test
+   * Retrieves question count for a custom test (per variant)
    */
   public static async getQuestionCount(customTestId: string, client?: DbClient): Promise<number> {
     const db = client || (await getDb());
     const res = await db.query(
-      `SELECT COUNT(*)::int as count FROM custom_test_questions WHERE test_id = $1`,
+      `SELECT COALESCE(MAX(question_number), 0)::int as count FROM custom_test_questions WHERE test_id = $1`,
       [customTestId]
     );
     return res.rows[0]?.count || 0;

@@ -473,6 +473,7 @@ export interface CustomOptionItem {
 
 export interface CustomQuestionItem {
   id?: number;
+  variantNumber?: number;
   questionNumber?: number;
   questionText: string;
   questionType: CustomQuestionType;
@@ -487,6 +488,7 @@ export interface CustomTestSummary {
   title: string;
   durationMinutes: number;
   questionCount: number;
+  variantCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -496,6 +498,7 @@ export interface CustomTestDetail {
   teacherId: number;
   title: string;
   durationMinutes: number;
+  variantCount?: number;
   createdAt: string;
   updatedAt: string;
   questions: CustomQuestionItem[];

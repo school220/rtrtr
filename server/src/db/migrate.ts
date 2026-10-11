@@ -56,6 +56,7 @@ export async function runMigrations(): Promise<void> {
     CREATE TABLE IF NOT EXISTS custom_test_questions (
       id SERIAL PRIMARY KEY,
       test_id VARCHAR(36) NOT NULL REFERENCES custom_tests(id) ON DELETE CASCADE,
+      variant_number INT NOT NULL DEFAULT 1,
       question_number INT NOT NULL,
       question_text TEXT NOT NULL,
       question_type VARCHAR(30) NOT NULL,
@@ -63,7 +64,7 @@ export async function runMigrations(): Promise<void> {
       options TEXT,
       points INT NOT NULL DEFAULT 1,
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT uq_custom_test_question UNIQUE (test_id, question_number)
+      CONSTRAINT uq_custom_test_variant_q UNIQUE (test_id, variant_number, question_number)
     );
   `);
 
@@ -89,6 +90,7 @@ export async function runMigrations(): Promise<void> {
     `ALTER TABLE games ADD COLUMN IF NOT EXISTS custom_test_id VARCHAR(36) REFERENCES custom_tests(id) ON DELETE SET NULL`,
     `ALTER TABLE forms ADD COLUMN IF NOT EXISTS teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1`,
     `ALTER TABLE form_questions ADD COLUMN IF NOT EXISTS teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1`,
+    `ALTER TABLE custom_test_questions ADD COLUMN IF NOT EXISTS variant_number INT NOT NULL DEFAULT 1`,
     `ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualified_by VARCHAR(50)`,
     `ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualification_reason TEXT`,
     `ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualified_at TIMESTAMPTZ`,
@@ -113,6 +115,9 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE form_questions DROP CONSTRAINT IF EXISTS uq_form_question_number CASCADE;
       DROP INDEX IF EXISTS idx_form_questions_lookup;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(teacher_id, form_id, question_number);
+      ALTER TABLE custom_test_questions DROP CONSTRAINT IF EXISTS uq_custom_test_question CASCADE;
+      DROP INDEX IF EXISTS idx_custom_test_questions_test;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_test_questions_test ON custom_test_questions(test_id, variant_number, question_number);
     `);
   } catch {}
 

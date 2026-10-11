@@ -345,4 +345,133 @@ describe('Custom Tests ("Мои тесты") & Question Types End-to-End', () =>
     expect(dash.students[0].scoreReport.percentage).toBe(100);
     expect(dash.students[0].scoreReport.grade).toBe(5);
   });
+
+  it('10. Supports multiple variants (Variant 1 & Variant 2) with round-robin student assignment and independent questions', async () => {
+    const createRes = await fetch(`${baseUrl}/api/custom-tests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${teacherToken1}`,
+      },
+      body: JSON.stringify({
+        title: 'Тест с двумя вариантами',
+        durationMinutes: 15,
+        questions: [
+          {
+            variantNumber: 1,
+            questionNumber: 1,
+            questionText: 'Вар 1: Сколько будет 10 + 10?',
+            questionType: 'free_input',
+            correctAnswer: '20',
+          },
+          {
+            variantNumber: 2,
+            questionNumber: 1,
+            questionText: 'Вар 2: Сколько будет 30 + 30?',
+            questionType: 'free_input',
+            correctAnswer: '60',
+          },
+        ],
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const multiTest = await createRes.json();
+    expect(multiTest.variantCount).toBe(2);
+    expect(multiTest.questions).toHaveLength(2);
+
+    const launchRes = await fetch(`${baseUrl}/api/custom-tests/${multiTest.id}/launch`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${teacherToken1}` },
+    });
+    expect(launchRes.status).toBe(201);
+    const room = await launchRes.json();
+
+    const s1Join = await fetch(`${baseUrl}/api/games/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameCode: room.code,
+        firstName: 'Иван',
+        lastName: 'Первый',
+      }),
+    });
+    const s1 = await s1Join.json();
+    expect(s1.formId).toBe(1);
+
+    const s2Join = await fetch(`${baseUrl}/api/games/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameCode: room.code,
+        firstName: 'Петр',
+        lastName: 'Второй',
+      }),
+    });
+    const s2 = await s2Join.json();
+    expect(s2.formId).toBe(2);
+
+    await fetch(`${baseUrl}/api/games/${room.gameId}/start`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${teacherToken1}` },
+    });
+
+    const s1StateRes = await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s1.studentId}/state`, {
+      headers: { 'x-session-token': s1.sessionToken },
+    });
+    const s1State = await s1StateRes.json();
+    expect(s1State.currentQuestion.text).toContain('Вар 1');
+
+    const s2StateRes = await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s2.studentId}/state`, {
+      headers: { 'x-session-token': s2.sessionToken },
+    });
+    const s2State = await s2StateRes.json();
+    expect(s2State.currentQuestion.text).toContain('Вар 2');
+
+    const s1AnsRes = await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s1.studentId}/answer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': s1.sessionToken,
+      },
+      body: JSON.stringify({
+        questionNumber: 1,
+        answerText: '20',
+      }),
+    });
+    expect((await s1AnsRes.json()).success).toBe(true);
+
+    const s2AnsRes = await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s2.studentId}/answer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': s2.sessionToken,
+      },
+      body: JSON.stringify({
+        questionNumber: 1,
+        answerText: '60',
+      }),
+    });
+    expect((await s2AnsRes.json()).success).toBe(true);
+
+    await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s1.studentId}/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': s1.sessionToken },
+    });
+    await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s2.studentId}/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': s2.sessionToken },
+    });
+
+    const s1Final = await (await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s1.studentId}/state`, {
+      headers: { 'x-session-token': s1.sessionToken },
+    })).json();
+    const s2Final = await (await fetch(`${baseUrl}/api/games/${room.gameId}/student/${s2.studentId}/state`, {
+      headers: { 'x-session-token': s2.sessionToken },
+    })).json();
+
+    expect(s1Final.scoreReport.correctAnswers).toBe(1);
+    expect(s1Final.scoreReport.percentage).toBe(100);
+    expect(s2Final.scoreReport.correctAnswers).toBe(1);
+    expect(s2Final.scoreReport.percentage).toBe(100);
+  });
 });

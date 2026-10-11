@@ -711,7 +711,13 @@ export function createApiRouter(io: Server): Router {
       const { gameId, studentId } = req.params;
       const sId = parseInt(studentId, 10);
       const state = await GameService.getStudentState(gameId, sId);
-      const questions = await QuestionService.getAllQuestionsForStudent(state.student.formId, (state as any).teacherId || 1);
+      const game = await GameService.getGameById(gameId);
+      let questions;
+      if (game?.custom_test_id) {
+        questions = await CustomTestService.getQuestionsForStudent(game.custom_test_id, state.student.formId);
+      } else {
+        questions = await QuestionService.getAllQuestionsForStudent(state.student.formId, (state as any).teacherId || 1);
+      }
       res.json(questions);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -726,7 +732,14 @@ export function createApiRouter(io: Server): Router {
       const qNum = parseInt(questionNumber, 10);
 
       const state = await GameService.getStudentState(gameId, sId);
-      const question = await QuestionService.getQuestionForStudent(state.student.formId, qNum, (state as any).teacherId || 1);
+      const game = await GameService.getGameById(gameId);
+      let question;
+      if (game?.custom_test_id) {
+        const allQuestions = await CustomTestService.getQuestionsForStudent(game.custom_test_id, state.student.formId);
+        question = allQuestions.find((q) => q.questionNumber === qNum) || null;
+      } else {
+        question = await QuestionService.getQuestionForStudent(state.student.formId, qNum, (state as any).teacherId || 1);
+      }
 
       if (!question) {
         res.status(404).json({ error: 'Вопрос не найден' });

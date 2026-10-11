@@ -21,12 +21,16 @@ import {
   FileEdit,
   BookOpen,
   UserX,
+  Menu,
+  X,
+  Sparkles,
 } from 'lucide-react';
 import { TimerDisplay } from '../components/TimerDisplay.js';
 import { Modal } from '../components/Modal.js';
-import { api, TeacherDashboardResponse } from '../services/api.js';
+import { api, TeacherDashboardResponse, CustomTestDetail } from '../services/api.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { LanguageSelector } from '../components/LanguageSelector.js';
+import { CustomTestEditorModal } from '../components/CustomTestEditorModal.js';
 
 interface TeacherDashboardProps {
   socket: Socket | null;
@@ -57,6 +61,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [showSessionsModal, setShowSessionsModal] = useState(false);
   const [showNewExamModal, setShowNewExamModal] = useState(false);
   const [showProctorPreviewModal, setShowProctorPreviewModal] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showCreateTestModal, setShowCreateTestModal] = useState(false);
   const [previewVariantNumber, setPreviewVariantNumber] = useState(1);
   const [recentGames, setRecentGames] = useState<{
     id: string;
@@ -325,6 +331,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     onBack();
   };
 
+  const handleLaunchCustomTestImmediately = async (savedTest: CustomTestDetail) => {
+    setShowCreateTestModal(false);
+    setLoading(true);
+    try {
+      const res = await api.launchCustomTest(savedTest.id);
+      setGameId(res.gameId);
+      localStorage.setItem('teacher_active_game_id', res.gameId);
+      await loadDashboard(res.gameId);
+    } catch (err: any) {
+      alert(err.message || 'Ошибка запуска теста');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportCsv = () => {
     if (!dashboard) return;
     const rows = [
@@ -488,85 +509,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons: Clean header with Drawer Menu Toggle */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Language Selector */}
-            <div className="bg-[#25718f] rounded">
-              <LanguageSelector />
-            </div>
-
-            {/* Sessions History Button */}
-            <button
-              onClick={handleOpenSessionsModal}
-              className="p-2.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-colors flex items-center gap-1.5 text-xs font-semibold"
-              title={t.dashSessionsBtn}
-            >
-              <Layers className="w-4 h-4 text-[#25718f]" />
-              <span className="hidden sm:inline">{t.dashSessionsBtn}</span>
-            </button>
-
-            {/* New Exam Session Button */}
-            <button
-              onClick={() => setShowNewExamModal(true)}
-              className="p-2.5 rounded bg-emerald-50 hover:bg-emerald-100 text-[#00a65a] border border-emerald-300 transition-colors flex items-center gap-1.5 text-xs font-semibold"
-              title={t.dashNewExamBtn}
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.dashNewExamBtn}</span>
-            </button>
-
-            {/* My Tests Button ("Мои тесты") */}
-            {onOpenCustomTests && (
-              <button
-                onClick={onOpenCustomTests}
-                className="p-2.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm"
-                title={t.dashMyTestsBtn}
-              >
-                <BookOpen className="w-4 h-4 text-purple-700" />
-                <span>{t.dashMyTestsBtn}</span>
-              </button>
-            )}
-
-            {/* Edit KIM Questions & Answers Button */}
-            {onOpenImport && (
-              <button
-                onClick={onOpenImport}
-                className="p-2.5 rounded bg-cyan-50 hover:bg-cyan-100 text-[#25718f] border border-cyan-300 transition-colors flex items-center gap-1.5 text-xs font-semibold"
-                title={t.dashEditQuestionsBtn}
-              >
-                <FileEdit className="w-4 h-4" />
-                <span className="hidden md:inline">{t.dashEditQuestionsBtn}</span>
-              </button>
-            )}
-
-            {/* Proctor Test Preview Button */}
-            {onStartProctorPreview && (
-              <button
-                onClick={() => setShowProctorPreviewModal(true)}
-                className="p-2.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm"
-                title={t.dashProctorPreviewDesc}
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-600" />
-                <span className="hidden sm:inline">{t.dashProctorPreviewBtn}</span>
-              </button>
-            )}
-
+            {/* Quick Refresh */}
             <button
               onClick={() => gameId && loadDashboard(gameId)}
-              className="p-2.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors border border-gray-200"
               title={t.dashRefresh}
             >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.dashRefresh}</span>
+              <RefreshCw className="w-4 h-4 text-[#25718f]" />
             </button>
 
+            {/* Side Drawer Menu Toggle Button */}
             <button
-              onClick={handleLogout}
-              className="p-2.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors flex items-center gap-1.5 text-xs font-mono font-semibold"
-              title={t.dashLogout}
+              onClick={() => setIsDrawerOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-[#1e282c] hover:bg-[#28363c] text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 border border-cyan-800/40 group"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.dashLogout}</span>
+              <Menu className="w-4 h-4 text-cyan-400 group-hover:rotate-90 transition-transform duration-200" />
+              <span className="tracking-wide">Меню управления</span>
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             </button>
 
             {isFinished && (
@@ -1296,6 +1257,219 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </Modal>
       )}
+
+      {/* ==================================================== */}
+      {/* Slide-out Side Drawer Navigation */}
+      {/* ==================================================== */}
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden animate-fade-in">
+          {/* Dark Glassmorphic Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+
+          {/* Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-sm sm:max-w-md bg-[#182124] text-white shadow-2xl flex flex-col border-l border-cyan-900/50">
+              {/* Drawer Top Header */}
+              <div className="p-5 border-b border-gray-800 flex items-center justify-between bg-[#141b1e]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#25718f] to-cyan-400 flex items-center justify-center font-black text-black text-base shadow-md">
+                    {(api.getTeacherInfo()?.fullName || 'П').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white tracking-tight line-clamp-1">
+                      {api.getTeacherInfo()?.fullName || 'Проверяющий'}
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-bold">
+                        {api.getTeacherInfo()?.role || 'ЭКЗАМЕНАТОР'}
+                      </span>
+                      {api.getTeacherInfo()?.username && (
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          @{api.getTeacherInfo()?.username}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {/* HERO ACTION: CREATE NEW TEST BUTTON */}
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400 font-mono">
+                    Быстрое создание:
+                  </span>
+                  <button
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      setShowCreateTestModal(true);
+                    }}
+                    className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-[#25718f] hover:from-cyan-400 hover:to-teal-300 text-black font-extrabold shadow-xl flex items-center gap-3.5 transition-all transform hover:scale-[1.02] active:scale-[0.98] group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform">
+                      <Sparkles className="w-6 h-6 text-black" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <div className="font-black text-sm tracking-wide">
+                        ✨ Создать новый тест
+                      </div>
+                      <div className="text-[11px] font-semibold text-black/80 mt-0.5">
+                        Время, варианты и вопросы с формулами
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Navigation Items */}
+                <div className="space-y-1.5 pt-2">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 font-mono">
+                    Разделы и функции:
+                  </span>
+
+                  {/* My Tests ("Мои тесты") */}
+                  {onOpenCustomTests && (
+                    <button
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        onOpenCustomTests();
+                      }}
+                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-purple-900/40 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-white font-bold">{t.dashMyTestsBtn}</div>
+                        <div className="text-[11px] text-gray-400">Список ваших авторских тестов</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* New Exam Session */}
+                  <button
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      setShowNewExamModal(true);
+                    }}
+                    className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-900/40 border border-emerald-500/40 flex items-center justify-center text-emerald-300">
+                      <PlusCircle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-bold">{t.dashNewExamBtn}</div>
+                      <div className="text-[11px] text-gray-400">Создать новую комнату для экзамена</div>
+                    </div>
+                  </button>
+
+                  {/* Edit KIM Questions */}
+                  {onOpenImport && (
+                    <button
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        onOpenImport();
+                      }}
+                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-cyan-900/40 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                        <FileEdit className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-white font-bold">{t.dashEditQuestionsBtn}</div>
+                        <div className="text-[11px] text-gray-400">Банк заданий и эталоны ответов</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Proctor Preview */}
+                  {onStartProctorPreview && (
+                    <button
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        setShowProctorPreviewModal(true);
+                      }}
+                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-white font-bold">{t.dashProctorPreviewBtn}</div>
+                        <div className="text-[11px] text-gray-400">{t.dashProctorPreviewDesc}</div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Sessions History */}
+                  <button
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      handleOpenSessionsModal();
+                    }}
+                    className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-900/40 border border-blue-500/40 flex items-center justify-center text-blue-300">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-bold">{t.dashSessionsBtn}</div>
+                      <div className="text-[11px] text-gray-400">Журнал прошедших сессий</div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Language Selector Inside Drawer */}
+                <div className="space-y-1.5 pt-2 border-t border-gray-800">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 font-mono">
+                    Язык интерфейса:
+                  </span>
+                  <div className="bg-[#243035] p-2 rounded-xl border border-gray-700/60">
+                    <LanguageSelector />
+                  </div>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-gray-800 bg-[#141b1e]">
+                <button
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full p-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 flex items-center justify-center gap-2 transition-colors text-xs font-bold"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>{t.dashLogout}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Test Editor Modal with Variants Support */}
+      <CustomTestEditorModal
+        isOpen={showCreateTestModal}
+        onClose={() => setShowCreateTestModal(false)}
+        onSuccess={() => {
+          setShowCreateTestModal(false);
+          if (onOpenCustomTests) {
+            onOpenCustomTests();
+          }
+        }}
+        onLaunchImmediately={handleLaunchCustomTestImmediately}
+      />
     </div>
   );
 };
