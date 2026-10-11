@@ -546,26 +546,26 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0c121e] text-slate-100 flex flex-col h-screen w-screen overflow-hidden select-none font-sans animate-fade-in">
+    <div className="fixed inset-0 z-50 liquid-glass-bg text-slate-800 flex flex-col h-screen w-screen overflow-hidden select-none font-sans animate-fade-in">
       {/* ==================================================== */}
       {/* 1. TOP FULLSCREEN STUDIO HEADER */}
       {/* ==================================================== */}
-      <header className="h-16 sm:h-20 bg-[#111928] border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 flex-shrink-0 z-20 shadow-md">
+      <header className="h-16 sm:h-20 liquid-glass border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4 flex-shrink-0 z-20 shadow-sm">
         {/* Left: Close & Title input */}
         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 flex-shrink-0 border border-slate-700/60"
+            className="p-2.5 rounded-2xl liquid-glass-btn-secondary text-slate-700 hover:text-slate-900 transition-all flex items-center gap-1.5 flex-shrink-0 shadow-xs"
             title="Закрыть редактор"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="hidden md:inline text-xs font-semibold">К панели</span>
+            <span className="hidden md:inline text-xs font-bold">К панели</span>
           </button>
 
           <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 font-mono bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60 w-fit flex-shrink-0 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 font-mono bg-cyan-100/80 px-2 py-0.5 rounded-lg border border-cyan-300/60 w-fit flex-shrink-0 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-cyan-600" />
               <span>СТУДИЯ ТЕСТОВ</span>
             </span>
 
@@ -574,15 +574,15 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Введите название теста (например: Контрольная работа по геометрии)..."
-              className="w-full max-w-xl bg-slate-900/90 border border-slate-700 focus:border-cyan-400 rounded-xl px-3.5 py-1.5 sm:py-2 text-sm sm:text-base font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-all truncate"
+              className="w-full max-w-xl liquid-glass-input rounded-xl px-3.5 py-1.5 sm:py-2 text-sm sm:text-base font-bold text-slate-900 placeholder-slate-400 focus:outline-none transition-all truncate"
             />
           </div>
         </div>
 
         {/* Center: Duration & Totals */}
-        <div className="hidden lg:flex items-center gap-3 bg-slate-900/70 border border-slate-800 rounded-xl px-3.5 py-1.5 flex-shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
-            <Clock className="w-4 h-4 text-cyan-400" />
+        <div className="hidden lg:flex items-center gap-3 bg-white/70 border border-slate-200 rounded-xl px-3.5 py-1.5 flex-shrink-0 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold">
+            <Clock className="w-4 h-4 text-cyan-600" />
             <span>Время:</span>
             <input
               type="number"
@@ -590,12 +590,12 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
               max={180}
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              className="w-14 bg-slate-800 border border-slate-700 focus:border-cyan-400 rounded-lg px-2 py-1 text-center text-xs font-bold text-white font-mono focus:outline-none"
+              className="w-14 liquid-glass-input rounded-lg px-2 py-1 text-center text-xs font-bold text-slate-900 font-mono focus:outline-none"
             />
-            <span className="text-slate-400">мин</span>
+            <span className="text-slate-500">мин</span>
           </div>
 
-          <div className="h-4 w-px bg-slate-800" />
+          <div className="h-4 w-px bg-slate-200" />
 
           {/* Quick presets */}
           <div className="flex items-center gap-1">
@@ -604,10 +604,10 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 key={mins}
                 type="button"
                 onClick={() => setDurationMinutes(String(mins))}
-                className={`text-[11px] px-2 py-0.5 rounded transition-colors font-mono font-semibold ${
+                className={`text-[11px] px-2 py-0.5 rounded-lg transition-colors font-mono font-semibold ${
                   durationMinutes === String(mins)
-                    ? 'bg-cyan-500 text-slate-950 font-black'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
+                    ? 'bg-cyan-600 text-white font-black shadow-2xs'
+                    : 'liquid-glass-btn-secondary text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {mins}м
@@ -615,9 +615,9 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
             ))}
           </div>
 
-          <div className="h-4 w-px bg-slate-800" />
-          <span className="text-[11px] font-mono text-slate-400">
-            Вопросов: <strong className="text-cyan-400">{totalQuestionsAllVariants}</strong>
+          <div className="h-4 w-px bg-slate-200" />
+          <span className="text-[11px] font-mono text-slate-600 font-semibold">
+            Вопросов: <strong className="text-cyan-700">{totalQuestionsAllVariants}</strong>
           </span>
         </div>
 
@@ -627,14 +627,14 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
           <button
             type="button"
             onClick={() => setShowFormulaPreview(!showFormulaPreview)}
-            className={`p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
               showFormulaPreview
-                ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                ? 'bg-cyan-100/90 border-cyan-300 text-cyan-900 shadow-2xs'
+                : 'liquid-glass-btn-secondary text-slate-600'
             }`}
             title="Переключить предпросмотр математических формул"
           >
-            {showFormulaPreview ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {showFormulaPreview ? <Eye className="w-4 h-4 text-cyan-700" /> : <EyeOff className="w-4 h-4 text-slate-500" />}
             <span className="hidden sm:inline">Формулы</span>
           </button>
 
@@ -644,7 +644,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
               type="button"
               disabled={saving || loading}
               onClick={() => handleSave(true)}
-              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
             >
               <Rocket className="w-4 h-4" />
               <span className="hidden md:inline">Запустить сейчас</span>
@@ -656,7 +656,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
             type="button"
             disabled={saving || loading}
             onClick={() => handleSave(false)}
-            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-[#25718f] hover:from-cyan-400 hover:to-teal-300 active:scale-95 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-xl flex items-center gap-2 disabled:opacity-50"
+            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-2xl liquid-glass-btn-primary font-black text-xs sm:text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             <span>{saving ? 'Сохранение...' : 'Сохранить тест'}</span>
@@ -670,15 +670,15 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
       <div className="flex-1 flex overflow-hidden">
         {/* Error Notification Bar if any */}
         {error && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] p-3.5 bg-red-950/90 border border-red-500 text-red-200 text-xs sm:text-sm rounded-xl shadow-2xl flex items-center justify-between gap-3 animate-shake backdrop-blur-md">
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] p-3.5 bg-rose-50 border border-rose-300 text-rose-800 text-xs sm:text-sm rounded-2xl shadow-xl flex items-center justify-between gap-3 animate-shake backdrop-blur-md">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-              <span className="font-medium">{error}</span>
+              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <span className="font-bold">{error}</span>
             </div>
             <button
               type="button"
               onClick={() => setError(null)}
-              className="p-1 rounded hover:bg-red-900/60 text-red-300"
+              className="p-1 rounded-lg hover:bg-rose-100 text-rose-600"
             >
               <X className="w-4 h-4" />
             </button>
@@ -686,12 +686,12 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
         )}
 
         {/* LEFT STUDIO RAIL: VARIANTS & QUESTION JUMP LIST */}
-        <aside className="w-72 sm:w-80 bg-[#111928] border-r border-slate-800/80 flex flex-col flex-shrink-0 overflow-hidden">
+        <aside className="w-72 sm:w-80 bg-white/75 backdrop-blur-2xl border-r border-slate-200/80 flex flex-col flex-shrink-0 overflow-hidden">
           {/* Variants Block */}
-          <div className="p-4 border-b border-slate-800/80 space-y-3">
+          <div className="p-4 border-b border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-300">
-                <Layers className="w-4 h-4 text-cyan-400" />
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+                <Layers className="w-4 h-4 text-cyan-600" />
                 <span>Варианты ({variants.length})</span>
               </div>
 
@@ -699,7 +699,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyFromVariant1}
-                  className="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 flex items-center gap-1 transition-colors"
+                  className="text-[11px] px-2.5 py-1 rounded-xl liquid-glass-btn-secondary text-cyan-800 flex items-center gap-1 transition-colors font-bold shadow-2xs"
                   title="Скопировать вопросы из Варианта 1"
                 >
                   <Copy className="w-3 h-3" />
@@ -709,7 +709,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
             </div>
 
             {/* Variant Pills Grid */}
-            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 scrollbar-thin">
+            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
               {variants.map((vNum) => {
                 const count = variantQuestions[vNum]?.length || 0;
                 const isActive = activeVariant === vNum;
@@ -720,15 +720,15 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                       setActiveVariant(vNum);
                       setActiveQuestionIndex(0);
                     }}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                       isActive
-                        ? 'bg-gradient-to-r from-cyan-600/90 to-[#25718f]/90 text-white border-cyan-400 shadow-md font-bold'
-                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                        ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white border-cyan-500 shadow-md font-bold'
+                        : 'liquid-glass-card text-slate-700 hover:bg-white'
                     }`}
                   >
                     <div className="flex flex-col">
                       <span className="text-xs">Вариант {vNum}</span>
-                      <span className="text-[10px] font-mono text-cyan-300/80">{count} вопр.</span>
+                      <span className={`text-[10px] font-mono ${isActive ? 'text-cyan-100' : 'text-slate-500'}`}>{count} вопр.</span>
                     </div>
 
                     {variants.length > 1 && (
@@ -738,7 +738,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                           e.stopPropagation();
                           handleDeleteVariant(vNum);
                         }}
-                        className="p-1 rounded hover:bg-red-500/30 text-slate-400 hover:text-red-300 transition-colors"
+                        className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-600 transition-colors"
                         title={`Удалить Вариант ${vNum}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -751,7 +751,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddVariant}
-                className="p-2.5 rounded-xl bg-slate-900/50 hover:bg-slate-800 border border-dashed border-cyan-500/40 text-cyan-400 text-xs font-semibold flex items-center justify-center gap-1 transition-all"
+                className="p-2.5 rounded-2xl bg-cyan-50/60 hover:bg-cyan-100/70 border border-dashed border-cyan-400 text-cyan-800 text-xs font-bold flex items-center justify-center gap-1 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Вариант</span>
@@ -761,16 +761,16 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
 
           {/* Questions Outline Jump List */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="p-4 pb-2 flex items-center justify-between text-xs text-slate-400 font-semibold border-b border-slate-800/40">
-              <span className="uppercase tracking-wider text-[11px] font-mono text-cyan-300">
+            <div className="p-4 pb-2 flex items-center justify-between text-xs text-slate-600 font-semibold border-b border-slate-200/60">
+              <span className="uppercase tracking-wider text-[11px] font-mono text-cyan-800 font-bold">
                 Вопросы Варианта {activeVariant}
               </span>
-              <span className="font-mono text-[11px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">
+              <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-700 font-bold">
                 {currentQuestions.length}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
               {currentQuestions.map((q, idx) => {
                 const isSelected = activeQuestionIndex === idx;
                 const isFilled = Boolean(q.questionText.trim());
@@ -779,27 +779,27 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => scrollToQuestion(idx)}
-                    className={`w-full text-left p-2.5 rounded-xl border flex items-center gap-2.5 transition-all text-xs ${
+                    className={`w-full text-left p-2.5 rounded-2xl border flex items-center gap-2.5 transition-all text-xs ${
                       isSelected
-                        ? 'bg-slate-800 text-white border-cyan-500 shadow-sm font-semibold'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-800/80 hover:bg-slate-850 hover:text-slate-200'
+                        ? 'bg-cyan-50 text-cyan-900 border-cyan-400 shadow-xs font-bold'
+                        : 'bg-white/60 text-slate-600 border-slate-200/80 hover:bg-white hover:text-slate-900'
                     }`}
                   >
                     <span
                       className={`w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0 ${
                         isSelected
-                          ? 'bg-cyan-500 text-slate-950 font-black'
+                          ? 'bg-cyan-600 text-white font-black'
                           : isFilled
-                          ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-500'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-slate-100 text-slate-500'
                       }`}
                     >
                       {idx + 1}
                     </span>
                     <span className="truncate flex-1">
-                      {q.questionText ? q.questionText : <span className="italic text-slate-500">(Пустой вопрос)</span>}
+                      {q.questionText ? q.questionText : <span className="italic text-slate-400">(Пустой вопрос)</span>}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500">
+                    <span className="text-[10px] font-mono text-slate-400">
                       {q.questionType === 'four_options' ? '4 вар.' : q.questionType === 'yes_no' ? 'Да/Нет' : 'Ввод'}
                     </span>
                   </button>
@@ -808,11 +808,11 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
             </div>
 
             {/* Add question bottom button in sidebar */}
-            <div className="p-3 border-t border-slate-800/80 bg-slate-900/50">
+            <div className="p-3 border-t border-slate-200/80 bg-white/60">
               <button
                 type="button"
                 onClick={handleAddQuestion}
-                className="w-full py-2.5 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="w-full py-2.5 rounded-2xl liquid-glass-btn-primary font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>Добавить вопрос</span>
@@ -822,22 +822,22 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
         </aside>
 
         {/* MAIN STUDIO CANVAS (WIDE & COMFORTABLE FULLSCREEN VIEW) */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#0c121e]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-transparent">
           <div className="max-w-4xl mx-auto space-y-6 pb-20">
             {/* Top Canvas Information Card */}
-            <div className="bg-[#111928] border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#25718f] to-cyan-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+            <div className="liquid-glass rounded-3xl p-5 border border-white/80 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#25718f] to-cyan-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-cyan-500/20">
                   {activeVariant}
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                     Вариант №{activeVariant}
-                    <span className="text-xs bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-mono">
+                    <span className="text-xs bg-cyan-100/90 border border-cyan-200 text-cyan-900 px-2.5 py-0.5 rounded-full font-mono font-bold">
                       {currentQuestions.length} вопросов
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 font-medium">
                     Ученики будут получать варианты автоматически по кругу (1, 2, 1, 2...)
                   </p>
                 </div>
@@ -847,7 +847,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleAddQuestion}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-colors"
+                  className="px-4 py-2.5 rounded-2xl liquid-glass-btn-primary font-bold text-xs flex items-center gap-2 shadow-xs transition-all"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Добавить вопрос</span>
@@ -861,29 +861,29 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 key={qIdx}
                 ref={(el) => (questionRefs.current[qIdx] = el)}
                 onFocus={() => setActiveQuestionIndex(qIdx)}
-                className={`bg-[#111928] border rounded-2xl p-5 sm:p-6 space-y-5 transition-all shadow-md ${
+                className={`liquid-glass-card rounded-3xl p-5 sm:p-7 space-y-5 transition-all border border-white/80 shadow-md ${
                   activeQuestionIndex === qIdx
-                    ? 'border-cyan-500/70 ring-1 ring-cyan-500/30'
-                    : 'border-slate-800 hover:border-slate-750'
+                    ? 'ring-2 ring-cyan-500/40 border-cyan-300 shadow-cyan-500/10'
+                    : 'hover:border-slate-300'
                 }`}
               >
                 {/* Question Card Top Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3.5">
                   <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-[#25718f] text-slate-950 font-black text-sm flex items-center justify-center font-mono shadow-md">
+                    <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#25718f] to-cyan-500 text-white font-black text-sm flex items-center justify-center font-mono shadow-sm">
                       #{qIdx + 1}
                     </span>
-                    <span className="text-sm font-black text-white tracking-wide">
+                    <span className="text-sm font-black text-slate-900 tracking-wide">
                       Вопрос №{qIdx + 1}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono">
+                    <span className="text-xs text-slate-500 font-mono font-medium">
                       (Вариант {activeVariant})
                     </span>
                   </div>
 
                   <div className="flex items-center gap-4">
                     {/* Points field */}
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono bg-slate-900/80 px-2.5 py-1 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono bg-white/80 px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
                       <span>Балл:</span>
                       <input
                         type="number"
@@ -899,7 +899,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                             [activeVariant]: updated,
                           }));
                         }}
-                        className="w-12 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-center text-xs text-white font-bold"
+                        className="w-12 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-center text-xs text-slate-900 font-bold focus:ring-1 focus:ring-cyan-500"
                       />
                     </div>
 
@@ -907,7 +907,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveQuestion(qIdx)}
-                      className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/60 text-slate-400 hover:text-red-300 transition-colors border border-slate-700/60"
+                      className="p-1.5 rounded-xl bg-white/80 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors border border-slate-200 shadow-2xs"
                       title="Удалить вопрос"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -918,11 +918,11 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 {/* Question Textarea with Desmos Math Toolbar */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <span>Текст задания:</span>
-                      <span className="text-red-400">*</span>
+                      <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[11px] text-slate-400 font-mono">
+                    <span className="text-[11px] text-slate-500 font-mono">
                       {'Формулы оборачивайте в $...$ (например: $\\sqrt{x} + \\frac{1}{2}$)'}
                     </span>
                   </div>
@@ -936,13 +936,13 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                     }}
                     onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
                     placeholder="Введите текст вопроса. Например: Вычислите площадь треугольника со сторонами $a=3$ и $b=4$..."
-                    className="w-full bg-[#0c121e] border border-slate-700 focus:border-cyan-400 rounded-xl p-3.5 text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-all font-sans leading-relaxed"
+                    className="w-full liquid-glass-input rounded-2xl p-3.5 text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 font-sans leading-relaxed transition-all shadow-inner"
                   />
 
                   {/* High-Contrast Desmos Math Toolbar */}
-                  <div className="bg-[#0e1626] border border-cyan-900/50 rounded-xl p-3 shadow-inner">
-                    <div className="text-[10px] uppercase font-bold text-cyan-400 mb-2 flex items-center gap-1.5 font-mono">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <div className="bg-white/70 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3 shadow-2xs">
+                    <div className="text-[10px] uppercase font-bold text-cyan-800 mb-2 flex items-center gap-1.5 font-mono">
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
                       <span>Панель математических символов и формул (Desmos / KaTeX):</span>
                     </div>
                     <MathToolbar
@@ -953,8 +953,8 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
 
                   {/* Formula Live Preview */}
                   {showFormulaPreview && q.questionText && (
-                    <div className="p-3.5 rounded-xl bg-[#090d15] border border-cyan-800/40 text-sm text-cyan-100 shadow-inner">
-                      <span className="text-[10px] uppercase font-mono font-bold text-slate-400 block mb-1">
+                    <div className="p-3.5 rounded-2xl bg-cyan-50/70 border border-cyan-200/80 text-sm text-cyan-950 shadow-2xs">
+                      <span className="text-[10px] uppercase font-mono font-bold text-cyan-700 block mb-1">
                         Живой предпросмотр задания:
                       </span>
                       <MathRenderer content={q.questionText} />
@@ -964,17 +964,17 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
 
                 {/* Question Type Selection */}
                 <div className="space-y-2 pt-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Формат ответа:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <button
                       type="button"
                       onClick={() => handleQuestionTypeChange(qIdx, 'four_options')}
-                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                         q.questionType === 'four_options'
-                          ? 'bg-gradient-to-r from-cyan-950/80 to-[#25718f]/40 border-cyan-400 text-cyan-200 shadow-md ring-1 ring-cyan-500/30'
-                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          ? 'bg-gradient-to-r from-cyan-600 to-[#25718f] border-cyan-400 text-white shadow-md shadow-cyan-500/20'
+                          : 'bg-white/70 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 shadow-2xs'
                       }`}
                     >
                       <span>🔘 4 варианта (Тест A, B, C, D)</span>
@@ -983,10 +983,10 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleQuestionTypeChange(qIdx, 'yes_no')}
-                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                         q.questionType === 'yes_no'
-                          ? 'bg-gradient-to-r from-cyan-950/80 to-[#25718f]/40 border-cyan-400 text-cyan-200 shadow-md ring-1 ring-cyan-500/30'
-                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          ? 'bg-gradient-to-r from-cyan-600 to-[#25718f] border-cyan-400 text-white shadow-md shadow-cyan-500/20'
+                          : 'bg-white/70 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 shadow-2xs'
                       }`}
                     >
                       <span>⚖️ Да / Нет (Верно / Неверно)</span>
@@ -995,10 +995,10 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleQuestionTypeChange(qIdx, 'free_input')}
-                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                         q.questionType === 'free_input'
-                          ? 'bg-gradient-to-r from-cyan-950/80 to-[#25718f]/40 border-cyan-400 text-cyan-200 shadow-md ring-1 ring-cyan-500/30'
-                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                          ? 'bg-gradient-to-r from-cyan-600 to-[#25718f] border-cyan-400 text-white shadow-md shadow-cyan-500/20'
+                          : 'bg-white/70 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 shadow-2xs'
                       }`}
                     >
                       <span>✍️ Свободный ввод (Число / Формула)</span>
@@ -1008,12 +1008,12 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
 
                 {/* Detailed Answer Configuration */}
                 {q.questionType === 'four_options' && (
-                  <div className="space-y-3 pt-2 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                  <div className="space-y-3 pt-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-300">
+                      <span className="font-bold text-slate-700">
                         Варианты ответа (отметьте кружком правильный):
                       </span>
-                      <span className="font-mono text-cyan-400 font-bold">
+                      <span className="font-mono text-cyan-800 font-bold bg-cyan-100/70 px-2 py-0.5 rounded-md">
                         Правильный: {q.correctAnswer}
                       </span>
                     </div>
@@ -1024,8 +1024,8 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                           key={optIdx}
                           className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${
                             opt.isCorrect
-                              ? 'bg-emerald-950/50 border-emerald-500 text-white shadow-md ring-1 ring-emerald-500/30'
-                              : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-sm ring-1 ring-emerald-400/40'
+                              : 'bg-white/80 border-slate-200 hover:border-slate-300 text-slate-900'
                           }`}
                         >
                           <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
@@ -1034,9 +1034,9 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                               name={`studio_q_${activeVariant}_${qIdx}_correct`}
                               checked={opt.isCorrect === true}
                               onChange={() => handleSelectCorrectOption(qIdx, optIdx)}
-                              className="accent-emerald-400 w-4 h-4 cursor-pointer"
+                              className="accent-emerald-600 w-4 h-4 cursor-pointer"
                             />
-                            <span className="font-black text-sm font-mono w-4 text-cyan-300">
+                            <span className="font-black text-sm font-mono w-4 text-cyan-700">
                               {opt.label}:
                             </span>
                           </label>
@@ -1050,7 +1050,7 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                             }}
                             onChange={(e) => handleOptionTextChange(qIdx, optIdx, e.target.value)}
                             placeholder={`Введите текст варианта ${opt.label}...`}
-                            className="w-full bg-transparent border-0 text-sm text-white focus:outline-none placeholder-slate-500 font-sans"
+                            className="w-full bg-transparent border-0 text-sm text-slate-900 focus:outline-none placeholder-slate-400 font-sans"
                           />
                         </div>
                       ))}
@@ -1059,18 +1059,18 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 )}
 
                 {q.questionType === 'yes_no' && (
-                  <div className="space-y-2.5 pt-2 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                    <span className="text-xs font-bold text-slate-300 block">
+                  <div className="space-y-2.5 pt-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                    <span className="text-xs font-bold text-slate-700 block">
                       Выберите эталонный ответ:
                     </span>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => handleSelectYesNoCorrect(qIdx, true)}
-                        className={`py-3.5 rounded-xl border font-black text-sm flex items-center justify-center gap-2 transition-all ${
+                        className={`py-3.5 rounded-2xl border font-black text-sm flex items-center justify-center gap-2 transition-all ${
                           q.correctAnswer === 'Да'
-                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg ring-2 ring-emerald-400/30'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-2 ring-emerald-400/30'
+                            : 'bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <CheckCircle2 className="w-5 h-5" />
@@ -1080,10 +1080,10 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSelectYesNoCorrect(qIdx, false)}
-                        className={`py-3.5 rounded-xl border font-black text-sm flex items-center justify-center gap-2 transition-all ${
+                        className={`py-3.5 rounded-2xl border font-black text-sm flex items-center justify-center gap-2 transition-all ${
                           q.correctAnswer === 'Нет'
-                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg ring-2 ring-emerald-400/30'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-2 ring-emerald-400/30'
+                            : 'bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white'
                         }`}
                       >
                         <CheckCircle2 className="w-5 h-5" />
@@ -1094,12 +1094,12 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                 )}
 
                 {q.questionType === 'free_input' && (
-                  <div className="space-y-2.5 pt-2 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                  <div className="space-y-2.5 pt-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-300">
+                      <span className="font-bold text-slate-700">
                         Правильный эталонный ответ (число или формула):
                       </span>
-                      <span className="text-slate-400 font-mono text-[11px]">
+                      <span className="text-slate-500 font-mono text-[11px]">
                         Сервер автоматически сравнивает эквивалентные дроби и степени
                       </span>
                     </div>
@@ -1113,12 +1113,12 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
                       }}
                       onChange={(e) => handleFreeInputAnswerChange(qIdx, e.target.value)}
                       placeholder="Например: 4.5 или 9/2 или \sqrt{2}"
-                      className="w-full bg-[#0c121e] border border-slate-700 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                      className="w-full liquid-glass-input rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 font-mono focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     />
 
                     {q.correctAnswer && (
-                      <div className="p-2.5 rounded-lg bg-cyan-950/50 border border-cyan-800/40 text-xs text-cyan-200 flex items-center gap-2">
-                        <span className="font-mono text-slate-400 font-bold uppercase text-[10px]">
+                      <div className="p-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 text-xs text-cyan-900 flex items-center gap-2">
+                        <span className="font-mono text-cyan-700 font-bold uppercase text-[10px]">
                           Вид ответа:
                         </span>
                         <MathRenderer content={q.correctAnswer} />
@@ -1133,9 +1133,9 @@ export const CustomTestEditorModal: React.FC<CustomTestEditorModalProps> = ({
             <button
               type="button"
               onClick={handleAddQuestion}
-              className="w-full py-5 rounded-2xl bg-[#111928] hover:bg-slate-800/80 border-2 border-dashed border-cyan-500/50 text-cyan-300 font-black text-sm flex items-center justify-center gap-2.5 transition-all shadow-md group"
+              className="w-full py-5 rounded-3xl bg-white/70 hover:bg-white border-2 border-dashed border-cyan-400/70 text-cyan-800 font-black text-sm flex items-center justify-center gap-2.5 transition-all shadow-sm hover:shadow-md group"
             >
-              <div className="w-8 h-8 rounded-full bg-cyan-500/20 group-hover:bg-cyan-500 text-cyan-300 group-hover:text-slate-950 flex items-center justify-center transition-colors">
+              <div className="w-8 h-8 rounded-full bg-cyan-100 group-hover:bg-cyan-600 text-cyan-700 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs">
                 <Plus className="w-5 h-5" />
               </div>
               <span>Добавить следующий вопрос к Варианту {activeVariant}</span>

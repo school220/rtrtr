@@ -49,11 +49,11 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 select-none">
-      <div className="bg-white border border-gray-200 rounded-lg max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200 select-none">
+      <div className="liquid-glass-card border border-white/80 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-0">
         {/* HEMIS Top Bar Header */}
-        <div className="bg-[#25718f] text-white p-5 text-center relative">
-          <div className="w-12 h-12 rounded-full bg-white/20 border border-white/30 flex items-center justify-center mx-auto text-cyan-100 shadow mb-2">
+        <div className="bg-gradient-to-br from-[#25718f] to-cyan-600 text-white p-5 text-center relative border-b border-white/30">
+          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center mx-auto text-white shadow mb-2 backdrop-blur-sm">
             <GraduationCap className="w-7 h-7" />
           </div>
           <div className="text-[11px] font-mono tracking-widest uppercase text-cyan-200 font-bold">
@@ -67,10 +67,10 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
           </p>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 bg-white/50 backdrop-blur-md">
           {/* Error message */}
           {error && (
-            <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 shadow-2xs">
               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <span className="font-semibold">{error}</span>
             </div>
@@ -79,11 +79,11 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 font-mono">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                 {t.authUsernameLabel}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -93,17 +93,17 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
                   placeholder={t.authUsernamePlaceholder}
                   autoComplete="username"
                   disabled={loading}
-                  className="w-full pl-9 pr-3 py-2.5 rounded border border-gray-300 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f]"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-2xl liquid-glass-input font-mono text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 font-mono">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                 {t.authPasswordLabel}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -113,13 +113,13 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
                   placeholder={t.authPasswordPlaceholder}
                   autoComplete="current-password"
                   disabled={loading}
-                  className="w-full pl-9 pr-10 py-2.5 rounded border border-gray-300 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f]"
+                  className="w-full pl-9 pr-10 py-2.5 rounded-2xl liquid-glass-input font-mono text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -130,7 +130,7 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold text-xs uppercase tracking-wider shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-2xl liquid-glass-btn-primary font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -149,7 +149,7 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="w-full py-2 px-4 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-2 px-4 rounded-2xl liquid-glass-btn-secondary text-slate-600 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{t.authBackBtn}</span>

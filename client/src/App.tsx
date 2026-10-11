@@ -234,20 +234,14 @@ export const App: React.FC = () => {
     setView('teacher_login');
   };
 
-  const isDarkView =
-    view === 'teacher' ||
-    view === 'custom_tests' ||
-    view === 'teacher_login' ||
-    view === 'student_quiz';
-
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.body.style.backgroundColor = isDarkView ? '#090d16' : '#f4f6f9';
+      document.body.style.backgroundColor = '#f8fafc';
     }
-  }, [isDarkView]);
+  }, []);
 
   return (
-    <div className={`min-h-screen font-sans ${isDarkView ? 'bg-[#090d16] text-slate-100' : 'bg-[#f4f6f9] text-[#222d32]'}`}>
+    <div className="min-h-screen font-sans bg-[#f8fafc] text-slate-800">
       {/* 1. STUDENT PAGES (Pure Student Testing Portal, ZERO teacher links/buttons) */}
       {view === 'home' && (
         <Home

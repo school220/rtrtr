@@ -106,29 +106,29 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a2226] text-[#b8c7ce] flex flex-col font-sans select-none pb-safe">
+    <div className="liquid-glass-bg min-h-screen text-slate-800 flex flex-col font-sans select-none pb-safe">
       {/* Official Top Bar */}
-      <header className="bg-[#222d32] border-b border-[#2c3b41] h-14 pt-safe flex items-center justify-between px-4 sm:px-8 shadow-sm sticky top-0 z-40 backdrop-blur-md bg-[#222d32]/95">
+      <header className="liquid-glass sticky top-0 z-40 h-14 pt-safe flex items-center justify-between px-4 sm:px-8 shadow-xs border-b border-white/80">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#25718f] text-white flex items-center justify-center shadow">
-            <GraduationCap className="w-5 h-5 text-cyan-200" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#25718f] to-cyan-500 text-white flex items-center justify-center shadow-md shadow-cyan-500/20">
+            <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="text-white font-extrabold text-sm tracking-wide flex items-center gap-2">
+            <div className="text-slate-900 font-extrabold text-sm tracking-wide flex items-center gap-2">
               <span>HEMIS PROCTOR</span>
-              <span className="text-[10px] px-2 py-0.2 rounded bg-purple-900/60 text-purple-200 border border-purple-700/50 uppercase font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 uppercase font-mono font-bold">
                 Служебный раздел
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 font-mono hidden sm:block">
+            <div className="text-[10px] text-slate-500 font-mono hidden sm:block">
               Davlat attestatsiya komissiyasi • Nazorat va boshqaruv markazi
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3 text-xs font-mono">
-          <div className="hidden md:flex items-center gap-1.5 text-gray-400">
-            <Building2 className="w-4 h-4 text-cyan-400" />
+          <div className="hidden md:flex items-center gap-1.5 text-slate-500">
+            <Building2 className="w-4 h-4 text-cyan-600" />
             <span>Toshkent Davlat Universiteti</span>
           </div>
           <LanguageSelector />
@@ -139,11 +139,11 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 pb-8">
         <div className="w-full max-w-md space-y-4 animate-pop">
           {/* Card */}
-          <div className="bg-[#222d32] border border-[#2c3b41] rounded-2xl shadow-2xl overflow-hidden card-interactive">
+          <div className="liquid-glass-card rounded-3xl shadow-xl overflow-hidden border border-white/80 p-0">
             {/* Header banner */}
-            <div className="bg-[#25718f] text-white p-6 text-center relative border-b border-[#1f5f79]">
-              <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto text-cyan-100 shadow-inner mb-3">
-                <ShieldCheck className="w-8 h-8 text-cyan-200" />
+            <div className="bg-gradient-to-br from-[#25718f] via-[#1f5f79] to-cyan-600 text-white p-6 text-center relative border-b border-white/30 shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center mx-auto text-white shadow-inner mb-3 backdrop-blur-sm">
+                <ShieldCheck className="w-8 h-8 text-white" />
               </div>
               <div className="text-[11px] font-mono tracking-widest uppercase text-cyan-200 font-bold">
                 {t.authBadge}
@@ -157,17 +157,17 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
             </div>
 
             {/* Tab switch between Login and Register */}
-            <div className="grid grid-cols-2 border-b border-[#2c3b41] bg-[#1a2226]">
+            <div className="grid grid-cols-2 border-b border-slate-200/80 bg-white/40">
               <button
                 type="button"
                 onClick={() => {
                   setTab('login');
                   setError(null);
                 }}
-                className={`py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+                className={`py-3.5 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                   tab === 'login'
-                    ? 'bg-[#222d32] text-cyan-300 border-b-2 border-cyan-400'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#20292e]'
+                    ? 'bg-white/80 text-cyan-900 border-b-2 border-cyan-600 font-black shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
                 }`}
               >
                 <LogIn className="w-4 h-4" />
@@ -179,10 +179,10 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                   setTab('register');
                   setError(null);
                 }}
-                className={`py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+                className={`py-3.5 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                   tab === 'register'
-                    ? 'bg-[#222d32] text-cyan-300 border-b-2 border-cyan-400'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#20292e]'
+                    ? 'bg-white/80 text-cyan-900 border-b-2 border-cyan-600 font-black shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
                 }`}
               >
                 <UserPlus className="w-4 h-4" />
@@ -190,11 +190,11 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
               </button>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-5 bg-[#222d32]">
+            <div className="p-6 sm:p-8 space-y-5 bg-white/50 backdrop-blur-md">
               {/* Error Alert */}
               {error && (
-                <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-200 text-xs flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-200">
-                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-200 shadow-2xs">
+                  <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
                   <span className="font-semibold leading-tight">{error}</span>
                 </div>
               )}
@@ -203,11 +203,11 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
               {tab === 'login' && (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authUsernameLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <User className="w-4 h-4" />
                       </div>
                       <input
@@ -217,17 +217,17 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authUsernamePlaceholder}
                         autoComplete="username"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authPasswordLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <Lock className="w-4 h-4" />
                       </div>
                       <input
@@ -237,13 +237,13 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authPasswordPlaceholder}
                         autoComplete="current-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         tabIndex={-1}
-                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200"
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -254,7 +254,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-[#25718f] hover:bg-[#1f5f79] active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-cyan-900/20"
+                      className="w-full min-h-[48px] py-3 px-4 rounded-2xl liquid-glass-btn-primary font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     >
                       {loading ? (
                         <>
@@ -263,7 +263,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         </>
                       ) : (
                         <>
-                          <ShieldCheck className="w-4 h-4 text-cyan-200" />
+                          <ShieldCheck className="w-4 h-4 text-white" />
                           <span>{t.authSubmitBtn}</span>
                         </>
                       )}
@@ -276,11 +276,11 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
               {tab === 'register' && (
                 <form onSubmit={handleRegisterSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authFullNameLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <User className="w-4 h-4" />
                       </div>
                       <input
@@ -290,17 +290,17 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authFullNamePlaceholder}
                         autoComplete="name"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authUsernameLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <User className="w-4 h-4" />
                       </div>
                       <input
@@ -310,17 +310,17 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authUsernamePlaceholder}
                         autoComplete="username"
                         disabled={loading}
-                        className="w-full pl-10 pr-3 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-3 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authPasswordLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <Lock className="w-4 h-4" />
                       </div>
                       <input
@@ -330,13 +330,13 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authPasswordPlaceholder}
                         autoComplete="new-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         tabIndex={-1}
-                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200"
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -344,11 +344,11 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
                       {t.authConfirmPasswordLabel}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <Lock className="w-4 h-4" />
                       </div>
                       <input
@@ -358,7 +358,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         placeholder={t.authConfirmPasswordPlaceholder}
                         autoComplete="new-password"
                         disabled={loading}
-                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#1a2226] border border-[#3c4b52] font-mono text-base text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                        className="w-full pl-10 pr-10 py-3 rounded-2xl liquid-glass-input font-mono text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all shadow-inner"
                       />
                     </div>
                   </div>
@@ -367,7 +367,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-emerald-900/20"
+                      className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                     >
                       {loading ? (
                         <>
@@ -376,7 +376,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-4 h-4 text-emerald-200" />
+                          <UserPlus className="w-4 h-4 text-emerald-100" />
                           <span>{t.authRegisterBtn}</span>
                         </>
                       )}
@@ -386,12 +386,12 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
               )}
 
               {/* Security notice footer */}
-              <div className="pt-3 border-t border-[#2c3b41] text-[11px] text-gray-400 space-y-1.5 font-mono">
-                <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <div className="pt-3 border-t border-slate-200/80 text-[11px] text-slate-500 space-y-1 font-mono">
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>Xavfsiz va shifrlangan proktoring protokoli</span>
                 </div>
-                <p className="text-[10px] text-gray-500 leading-normal">
+                <p className="text-[10px] text-slate-400 leading-normal">
                   Har bir tekshiruvchi o'zining mustaqil variantlari va test auditoriyalariga ega bo'ladi.
                 </p>
               </div>
@@ -401,7 +401,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
       </main>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-gray-500 py-3 border-t border-[#2c3b41]">
+      <footer className="text-center text-xs text-slate-400 py-3 border-t border-slate-200/60 bg-white/40 backdrop-blur-sm">
         HEMIS Proctored Assessment • Universitet Imtihon Nazorati
       </footer>
     </div>
