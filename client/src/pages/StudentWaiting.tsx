@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { ShieldCheck, CheckCircle2, Clock, GraduationCap, Building2 } from 'lucide-react';
-import { JoinGameResponse } from '../services/api.js';
+import { JoinGameResponse, StudentStateResponse, api } from '../services/api.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { LanguageSelector } from '../components/LanguageSelector.js';
 
@@ -9,12 +9,14 @@ interface StudentWaitingProps {
   studentData: JoinGameResponse;
   socket: Socket | null;
   onGameStarted: (data: { startedAt: string; endsAt: string; totalTimeSeconds?: number; remainingSeconds?: number; serverTime?: number }) => void;
+  onDisqualified?: (state: StudentStateResponse) => void;
 }
 
 export const StudentWaiting: React.FC<StudentWaitingProps> = ({
   studentData,
   socket,
   onGameStarted,
+  onDisqualified,
 }) => {
   const { t } = useLanguage();
   const [durationMinutes, setDurationMinutes] = React.useState<number>(30);
@@ -45,14 +47,25 @@ export const StudentWaiting: React.FC<StudentWaitingProps> = ({
       }
     };
 
+    const handleDisqualified = async () => {
+      try {
+        const state = await api.getStudentState(studentData.gameId, studentData.studentId);
+        onDisqualified?.(state);
+      } catch (err) {
+        console.error('Error fetching student state on disqualification:', err);
+      }
+    };
+
     socket.on('game:started', handleStart);
     socket.on('game:duration_updated', handleDurationUpdated);
+    socket.on('student:disqualified', handleDisqualified);
 
     return () => {
       socket.off('game:started', handleStart);
       socket.off('game:duration_updated', handleDurationUpdated);
+      socket.off('student:disqualified', handleDisqualified);
     };
-  }, [socket, studentData, onGameStarted]);
+  }, [socket, studentData, onGameStarted, onDisqualified]);
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] flex flex-col font-sans select-none">

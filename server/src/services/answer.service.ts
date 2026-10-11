@@ -66,6 +66,9 @@ export class AnswerService {
       if (student.status === 'FINISHED') {
         throw new Error('Вы уже завершили этот тест.');
       }
+      if (student.status === 'DISQUALIFIED') {
+        throw new Error('Вы были исключены из тестирования. Результаты аннулированы.');
+      }
 
       let questionId: number | null = null;
       let customQuestionId: number | null = null;

@@ -20,6 +20,7 @@ import {
   PlusCircle,
   FileEdit,
   BookOpen,
+  UserX,
 } from 'lucide-react';
 import { TimerDisplay } from '../components/TimerDisplay.js';
 import { Modal } from '../components/Modal.js';
@@ -72,6 +73,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   const [customMinutes, setCustomMinutes] = useState<string>('30');
   const [savingDuration, setSavingDuration] = useState<boolean>(false);
+
+  // Disqualification state
+  const [disqualifyTarget, setDisqualifyTarget] = useState<any | null>(null);
+  const [disqualifyBy, setDisqualifyBy] = useState<'PROCTOR' | 'TEACHER'>('PROCTOR');
+  const [disqualifyProctorReason, setDisqualifyProctorReason] = useState<string>('');
+  const [disqualifyCustomReason, setDisqualifyCustomReason] = useState<string>('');
+  const [disqualifying, setDisqualifying] = useState<boolean>(false);
 
   // Sorting
   const [sortField, setSortField] = useState<SortField>('id');
@@ -382,6 +390,35 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     } else {
       setSortField(field);
       setSortAsc(field !== 'score' && field !== 'grade' && field !== 'suspicious');
+    }
+  };
+
+  const openDisqualifyModal = (st: any) => {
+    setDisqualifyTarget(st);
+    setDisqualifyBy('PROCTOR');
+    setDisqualifyProctorReason(t.disqualifyProctorReason1);
+    setDisqualifyCustomReason('');
+  };
+
+  const handleConfirmDisqualify = async () => {
+    if (!gameId || !disqualifyTarget) return;
+    const reason = disqualifyBy === 'PROCTOR' ? disqualifyProctorReason : disqualifyCustomReason.trim();
+    if (!reason) {
+      alert(t.disqualifyReasonLabel);
+      return;
+    }
+    setDisqualifying(true);
+    try {
+      await api.disqualifyStudent(gameId, disqualifyTarget.studentId, {
+        disqualifiedBy: disqualifyBy,
+        reason,
+      });
+      setDisqualifyTarget(null);
+      await loadDashboard(gameId);
+    } catch (err: any) {
+      alert(err.message || 'Xatolik yuz berdi');
+    } finally {
+      setDisqualifying(false);
     }
   };
 
@@ -797,6 +834,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <ArrowUpDown className="w-3 h-3" />
                     </div>
                   </th>
+                  <th className="py-3 px-4 text-center">{t.dashThActions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-medium">
@@ -841,14 +879,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <td className="py-3 px-4">
                         <span
                           className={`inline-block text-xs px-2.5 py-0.5 rounded font-semibold ${
-                            st.status === 'FINISHED'
+                            st.status === 'DISQUALIFIED'
+                              ? 'bg-rose-100 text-rose-800 border border-rose-300 font-bold'
+                              : st.status === 'FINISHED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : isOnline
                               ? 'bg-cyan-100 text-[#25718f]'
                               : 'bg-gray-100 text-gray-500'
                           }`}
                         >
-                          {st.status === 'FINISHED' ? t.dashStatusDone : isOnline ? t.dashStatusWorking : t.dashStatusOffline}
+                          {st.status === 'DISQUALIFIED'
+                            ? t.dashDisqualifiedBadge
+                            : st.status === 'FINISHED'
+                            ? t.dashStatusDone
+                            : isOnline
+                            ? t.dashStatusWorking
+                            : t.dashStatusOffline}
                         </span>
                       </td>
 
@@ -911,6 +957,29 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             <ShieldCheck className="w-3 h-3" />
                             <span>{t.dashSecurityClean}</span>
                           </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-center">
+                        {st.status === 'DISQUALIFIED' ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200"
+                            title={`${st.disqualifiedBy === 'PROCTOR' ? t.studentDisqualifiedProctorName : t.studentDisqualifiedTeacherName}: ${st.disqualificationReason || ''}`}
+                          >
+                            <UserX className="w-3 h-3 text-rose-600" />
+                            <span>{t.dashDisqualifiedBadge}</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openDisqualifyModal(st)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded transition-colors"
+                            title={t.dashDisqualifyBtn}
+                          >
+                            <UserX className="w-3.5 h-3.5" />
+                            <span>{t.dashDisqualifyBtn}</span>
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1092,6 +1161,141 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* Disqualification Modal */}
+      {disqualifyTarget && (
+        <Modal
+          isOpen={!!disqualifyTarget}
+          onClose={() => !disqualifying && setDisqualifyTarget(null)}
+          title={t.disqualifyModalTitle}
+        >
+          <div className="space-y-4 text-sm text-gray-700">
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">
+                {t.disqualifyStudentLabel}
+              </span>
+              <div className="text-base font-bold text-gray-900 mt-0.5">
+                {disqualifyTarget.lastName} {disqualifyTarget.firstName} (№{disqualifyTarget.studentId})
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                {t.disqualifyAuthorityLabel}
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  disqualifyBy === 'PROCTOR' ? 'bg-[#25718f]/10 border-[#25718f] text-[#25718f]' : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="disqualifyBy"
+                    checked={disqualifyBy === 'PROCTOR'}
+                    onChange={() => setDisqualifyBy('PROCTOR')}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <div className="font-bold text-xs">{t.disqualifyByProctor}</div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">
+                      AI / автопрокторинг
+                    </div>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  disqualifyBy === 'TEACHER' ? 'bg-[#25718f]/10 border-[#25718f] text-[#25718f]' : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="disqualifyBy"
+                    checked={disqualifyBy === 'TEACHER'}
+                    onChange={() => setDisqualifyBy('TEACHER')}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <div className="font-bold text-xs">{t.disqualifyByTeacher}</div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">
+                      Ручное решение экзаменатора
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {disqualifyBy === 'PROCTOR' ? (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  {t.disqualifyReasonLabel}
+                </label>
+                <div className="space-y-1.5">
+                  {[
+                    t.disqualifyProctorReason1,
+                    t.disqualifyProctorReason2,
+                    t.disqualifyProctorReason3,
+                    t.disqualifyProctorReason4,
+                    t.disqualifyProctorReason5,
+                  ].map((reasonText) => (
+                    <label
+                      key={reasonText}
+                      className={`flex items-center gap-2 p-2 rounded border text-xs cursor-pointer transition-colors ${
+                        disqualifyProctorReason === reasonText
+                          ? 'border-[#25718f] bg-[#25718f]/5 font-semibold text-gray-900'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="proctorReason"
+                        checked={disqualifyProctorReason === reasonText}
+                        onChange={() => setDisqualifyProctorReason(reasonText)}
+                      />
+                      <span>{reasonText}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  {t.disqualifyReasonLabel}
+                </label>
+                <textarea
+                  rows={3}
+                  value={disqualifyCustomReason}
+                  onChange={(e) => setDisqualifyCustomReason(e.target.value)}
+                  placeholder={t.disqualifyCustomReasonPlaceholder}
+                  className="w-full p-2.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#25718f] focus:border-[#25718f]"
+                />
+              </div>
+            )}
+
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{t.disqualifyWarning}</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={disqualifying}
+                onClick={() => setDisqualifyTarget(null)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                {t.dashFinishModalCancel}
+              </button>
+              <button
+                type="button"
+                disabled={disqualifying || (disqualifyBy === 'TEACHER' && !disqualifyCustomReason.trim())}
+                onClick={handleConfirmDisqualify}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-md shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <UserX className="w-3.5 h-3.5" />
+                <span>{disqualifying ? '...' : t.disqualifyConfirmBtn}</span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

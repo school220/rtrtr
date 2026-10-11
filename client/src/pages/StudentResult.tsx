@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShieldCheck, FileCheck, GraduationCap, Building2 } from 'lucide-react';
+import { Home, ShieldCheck, ShieldAlert, AlertTriangle, FileCheck, GraduationCap, Building2 } from 'lucide-react';
 import { StudentStateResponse } from '../services/api.js';
 import { useLanguage } from '../context/LanguageContext.js';
 import { LanguageSelector } from '../components/LanguageSelector.js';
@@ -22,6 +22,7 @@ export const StudentResult: React.FC<StudentResultProps> = ({
   const { t } = useLanguage();
   const report = state.scoreReport;
   const student = state.student;
+  const isDisqualified = student.status === 'DISQUALIFIED';
 
   const grade = report?.grade ?? 2;
   const percentage = report?.percentage ?? 0;
@@ -67,67 +68,145 @@ export const StudentResult: React.FC<StudentResultProps> = ({
         <div className="w-full max-w-md space-y-4 animate-in zoom-in-95 duration-300">
           {/* Official Result Card */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gray-50 border-b border-gray-200 p-4 text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-cyan-50 border border-cyan-200 text-[#25718f] text-xs font-mono font-bold tracking-wider">
-                <FileCheck className="w-4 h-4 text-[#25718f]" />
-                <span>{isProctorPreview ? 'PROKTOR TEKSHIRUVI / КОМИССИЯ' : t.resultBadge}</span>
-              </div>
-              <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight mt-1">
-                {t.resultHeading}
-              </h2>
-              <div className="text-sm font-bold text-gray-900 font-mono mt-1">
-                {student.lastName} {student.firstName}
-              </div>
-              <div className="text-xs text-gray-500 font-mono">
-                {t.resultStudentId} #{String(student.studentId).padStart(2, '0')} • {t.resultVariant}{String(student.formId).padStart(2, '0')}
-              </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Grade Display */}
-              <div className={`p-5 rounded border text-center space-y-1 ${gradeColor}`}>
-                <span className="block text-[11px] font-mono font-bold uppercase tracking-widest text-gray-600">
-                  {t.resultGradeTitle}
-                </span>
-                <div className="text-5xl font-black font-mono tracking-tight flex items-baseline justify-center gap-1">
-                  <span>{grade}</span>
-                  <span className="text-xl text-gray-500 font-semibold">/ 5</span>
+            {isDisqualified ? (
+              <div className="bg-rose-50 border-b border-rose-200 p-4 text-center">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-rose-100 border border-rose-300 text-rose-800 text-xs font-mono font-bold tracking-wider">
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                  <span>{t.studentDisqualifiedTitle}</span>
                 </div>
-                <div className="text-xs font-bold font-mono tracking-wider uppercase">
-                  {gradeTitle}
+                <h2 className="text-base font-black text-rose-900 uppercase tracking-tight mt-2">
+                  {t.studentDisqualifiedSubtitle}
+                </h2>
+                <div className="text-sm font-bold text-gray-900 font-mono mt-1">
+                  {student.lastName} {student.firstName}
+                </div>
+                <div className="text-xs text-gray-500 font-mono">
+                  {t.resultStudentId} #{String(student.studentId).padStart(2, '0')} • {t.resultVariant}{String(student.formId).padStart(2, '0')}
                 </div>
               </div>
+            ) : (
+              <div className="bg-gray-50 border-b border-gray-200 p-4 text-center">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-cyan-50 border border-cyan-200 text-[#25718f] text-xs font-mono font-bold tracking-wider">
+                  <FileCheck className="w-4 h-4 text-[#25718f]" />
+                  <span>{isProctorPreview ? 'PROKTOR TEKSHIRUVI / КОМИССИЯ' : t.resultBadge}</span>
+                </div>
+                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight mt-1">
+                  {t.resultHeading}
+                </h2>
+                <div className="text-sm font-bold text-gray-900 font-mono mt-1">
+                  {student.lastName} {student.firstName}
+                </div>
+                <div className="text-xs text-gray-500 font-mono">
+                  {t.resultStudentId} #{String(student.studentId).padStart(2, '0')} • {t.resultVariant}{String(student.formId).padStart(2, '0')}
+                </div>
+              </div>
+            )}
 
-              {/* Points Breakdown */}
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
-                    {t.resultCorrect}
-                  </span>
-                  <div className="text-xl font-black text-gray-900 font-mono">
-                    {correct} <span className="text-xs text-gray-500 font-normal">/ {total}</span>
+            {isDisqualified ? (
+              <div className="p-6 space-y-4">
+                {/* Disqualification Details Box */}
+                <div className="p-4 rounded-lg bg-rose-50/80 border border-rose-200 space-y-3 text-left">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block font-mono">
+                      {t.studentDisqualifiedByLabel}
+                    </span>
+                    <span className="text-xs font-bold text-gray-900">
+                      {student.disqualifiedBy === 'PROCTOR'
+                        ? t.studentDisqualifiedProctorName
+                        : t.studentDisqualifiedTeacherName}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block font-mono">
+                      {t.studentDisqualifiedReasonLabel}
+                    </span>
+                    <p className="text-xs text-rose-950 font-semibold bg-white p-2.5 rounded border border-rose-200 mt-1">
+                      {student.disqualificationReason || (student.disqualifiedBy === 'PROCTOR' ? t.disqualifyProctorReason3 : '')}
+                    </p>
+                  </div>
+
+                  <div className="text-[11px] text-rose-700 leading-relaxed border-t border-rose-200/60 pt-2 flex items-start gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>{t.studentDisqualifiedNote}</span>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
-                  <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
-                    {t.resultPercentage}
+                {/* Points & Grade Annulled Box */}
+                <div className="p-4 rounded bg-gray-50 border border-gray-200 text-center space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider block">
+                    {t.resultGradeTitle}
                   </span>
-                  <div className="text-xl font-black text-[#25718f] font-mono">
-                    {percentage}%
+                  <div className="text-xl font-black font-mono text-rose-600 uppercase">
+                    0 / 20 • 0% (АННУЛИРОВАНО)
                   </div>
                 </div>
-              </div>
 
-              {/* Verification Statement */}
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-700 space-y-1 text-left">
-                <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>{t.resultVerifiedTitle}</span>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('student_session_token');
+                      localStorage.removeItem('student_game_code');
+                      localStorage.removeItem('student_game_id');
+                      localStorage.removeItem('student_id');
+                      localStorage.removeItem('student_form_id');
+                      localStorage.removeItem('student_first_name');
+                      localStorage.removeItem('student_last_name');
+                      onHome();
+                    }}
+                    className="w-full py-2.5 px-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Home className="w-4 h-4" />
+                    <span>{t.resultBackBtn}</span>
+                  </button>
                 </div>
-                <div>{t.resultVerified1}</div>
-                <div>{t.resultVerified2}</div>
               </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                {/* Grade Display */}
+                <div className={`p-5 rounded border text-center space-y-1 ${gradeColor}`}>
+                  <span className="block text-[11px] font-mono font-bold uppercase tracking-widest text-gray-600">
+                    {t.resultGradeTitle}
+                  </span>
+                  <div className="text-5xl font-black font-mono tracking-tight flex items-baseline justify-center gap-1">
+                    <span>{grade}</span>
+                    <span className="text-xl text-gray-500 font-semibold">/ 5</span>
+                  </div>
+                  <div className="text-xs font-bold font-mono tracking-wider uppercase">
+                    {gradeTitle}
+                  </div>
+                </div>
+
+                {/* Points Breakdown */}
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
+                    <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
+                      {t.resultCorrect}
+                    </span>
+                    <div className="text-xl font-black text-gray-900 font-mono">
+                      {correct} <span className="text-xs text-gray-500 font-normal">/ {total}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded bg-gray-50 border border-gray-200 space-y-1">
+                    <span className="text-[10px] font-mono font-semibold text-gray-500 uppercase tracking-wider block">
+                      {t.resultPercentage}
+                    </span>
+                    <div className="text-xl font-black text-[#25718f] font-mono">
+                      {percentage}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verification Statement */}
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-700 space-y-1 text-left">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>{t.resultVerifiedTitle}</span>
+                  </div>
+                  <div>{t.resultVerified1}</div>
+                  <div>{t.resultVerified2}</div>
+                </div>
 
               <div className="flex flex-col gap-2 pt-2">
                 {isProctorPreview && onExitPreview ? (
@@ -181,9 +260,10 @@ export const StudentResult: React.FC<StudentResultProps> = ({
                 )}
               </div>
             </div>
-          </div>
+          )}
         </div>
-      </main>
+      </div>
+    </main>
     </div>
   );
 };

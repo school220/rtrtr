@@ -46,13 +46,13 @@ export class ExcelService {
       });
     };
 
-    // Calculate class averages
+    // Calculate class averages (excluding disqualified/annulled students)
     let totalScore = 0;
     let totalGrade = 0;
     let gradedCount = 0;
 
     for (const s of students) {
-      if (s.scoreReport) {
+      if (s.scoreReport && s.status !== 'DISQUALIFIED') {
         totalScore += s.scoreReport.scorePoints;
         totalGrade += s.scoreReport.grade;
         gradedCount++;
@@ -117,9 +117,9 @@ export class ExcelService {
       { key: 'percentage', width: 14 },
       { key: 'formId', width: 12 },
       { key: 'studentId', width: 10 },
-      { key: 'status', width: 16 },
+      { key: 'status', width: 22 },
       { key: 'finishedAt', width: 24 },
-      { key: 'suspicious', width: 24 },
+      { key: 'suspicious', width: 55 },
     ];
 
     // 3. Table Header (Row 5)
@@ -129,13 +129,13 @@ export class ExcelService {
       'Фамилия',
       'Имя',
       'Оценка',
-      'Баллы (из 20)',
+      'Баллы',
       'Результат (%)',
       'Бланк',
       'ID',
       'Статус',
       'Дата и время сдачи',
-      'Подозрительные действия',
+      'Подозрительные действия / Примечание',
     ];
     headerRow.height = 28;
 
@@ -155,8 +155,13 @@ export class ExcelService {
       };
     });
 
-    // Sort students by Score/Grade descending, then by Last Name
+    // Sort students: Active/Finished by Score/Grade descending, Disqualified at bottom
     const sorted = [...students].sort((a: any, b: any) => {
+      const aDis = a.status === 'DISQUALIFIED';
+      const bDis = b.status === 'DISQUALIFIED';
+      if (aDis && !bDis) return 1;
+      if (!aDis && bDis) return -1;
+
       const grA = a.scoreReport?.grade ?? 0;
       const grB = b.scoreReport?.grade ?? 0;
       if (grB !== grA) return grB - grA;
@@ -171,22 +176,37 @@ export class ExcelService {
     // 4. Data Rows
     let currentRowNum = 6;
     sorted.forEach((st: any, idx: number) => {
+      const isDisqualified = st.status === 'DISQUALIFIED';
       const rep = st.scoreReport;
-      const grade = rep?.grade ?? '—';
-      const score = rep?.scorePoints ?? st.answeredCount ?? 0;
-      const pct = rep ? `${rep.percentage}%` : '—';
-      const suspCount = st.securityEvents?.totalSuspicious ?? 0;
-      const suspDetail =
-        suspCount > 0
-          ? `⚠ ${suspCount} (вкладка: ${st.securityEvents?.pageHidden || 0}, fullscreen: ${st.securityEvents?.fullscreenExit || 0})`
-          : 'Нет';
+      const grade = isDisqualified ? 'АННУЛ.' : (rep?.grade ?? '—');
+      const score = isDisqualified ? 0 : (rep?.scorePoints ?? st.answeredCount ?? 0);
+      const pct = isDisqualified ? '0%' : (rep ? `${rep.percentage}%` : '—');
 
-      const statusText =
-        st.status === 'FINISHED'
-          ? 'Завершил'
-          : st.isOnline
-          ? 'В процессе'
-          : 'Отключён';
+      let suspDetail = '';
+      if (isDisqualified) {
+        if (st.disqualifiedBy === 'PROCTOR') {
+          suspDetail = `Система прокторинга исключила экзаменуемого из-за подозрительных действий${st.disqualificationReason ? ` (${st.disqualificationReason})` : ''}`;
+        } else {
+          suspDetail = `Исключён экзаменатором: ${st.disqualificationReason || 'Нарушение регламента'}`;
+        }
+      } else {
+        const suspCount = st.securityEvents?.totalSuspicious ?? 0;
+        suspDetail =
+          suspCount > 0
+            ? `⚠ ${suspCount} (вкладка: ${st.securityEvents?.pageHidden || 0}, fullscreen: ${st.securityEvents?.fullscreenExit || 0})`
+            : 'Нет';
+      }
+
+      let statusText = '';
+      if (isDisqualified) {
+        statusText = st.disqualifiedBy === 'PROCTOR' ? 'ИСКЛЮЧЁН (ПРОКТОР)' : 'ИСКЛЮЧЁН (УЧИТЕЛЬ)';
+      } else if (st.status === 'FINISHED') {
+        statusText = 'Завершил';
+      } else if (st.isOnline) {
+        statusText = 'В процессе';
+      } else {
+        statusText = 'Отключён';
+      }
 
       const row = worksheet.getRow(currentRowNum);
       row.values = [
@@ -202,7 +222,7 @@ export class ExcelService {
         formatDateTime(st.finishedAt || (st.status === 'FINISHED' ? game.finished_at : undefined)),
         suspDetail,
       ];
-      row.height = 22;
+      row.height = 24;
 
       // Base borders and alignment
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -231,26 +251,42 @@ export class ExcelService {
         }
       });
 
-      // Grade cell styling (Column 4)
-      const gradeCell = row.getCell(4);
-      if (grade === 5) {
-        gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } }; // Light green
-        gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF15803D' } };
-      } else if (grade === 4) {
-        gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } }; // Light blue
-        gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1D4ED8' } };
-      } else if (grade === 3) {
-        gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Light yellow
-        gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFB45309' } };
-      } else if (grade === 2) {
-        gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Light red
-        gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
-      }
-
-      // Suspicious activity warning color
-      if (suspCount > 0) {
+      if (isDisqualified) {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFEE2E2' },
+          };
+        });
+        const gradeCell = row.getCell(4);
+        gradeCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFB91C1C' } };
+        const statusCell = row.getCell(9);
+        statusCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFB91C1C' } };
         const suspCell = row.getCell(11);
-        suspCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFC2410C' } };
+        suspCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF991B1B' } };
+      } else {
+        // Grade cell styling (Column 4)
+        const gradeCell = row.getCell(4);
+        if (grade === 5) {
+          gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } }; // Light green
+          gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF15803D' } };
+        } else if (grade === 4) {
+          gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } }; // Light blue
+          gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1D4ED8' } };
+        } else if (grade === 3) {
+          gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Light yellow
+          gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFB45309' } };
+        } else if (grade === 2) {
+          gradeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Light red
+          gradeCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFB91C1C' } };
+        }
+
+        // Suspicious activity warning color
+        if ((st.securityEvents?.totalSuspicious ?? 0) > 0) {
+          const suspCell = row.getCell(11);
+          suspCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFC2410C' } };
+        }
       }
 
       currentRowNum++;

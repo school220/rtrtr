@@ -129,7 +129,25 @@ export const App: React.FC = () => {
       api
         .getStudentState(savedGameId, sId)
         .then((state) => {
-          if (state.gameStatus === 'FINISHED' || state.student.status === 'FINISHED') {
+          if (state.gameStatus === 'FINISHED' || state.student.status === 'FINISHED' || state.student.status === 'DISQUALIFIED') {
+            if (state.student.status === 'DISQUALIFIED') {
+              setStudentState(state);
+              setStudentData({
+                isReconnection: true,
+                gameId: state.gameId,
+                gameCode: state.gameCode,
+                gameStatus: state.gameStatus,
+                studentId: state.student.studentId,
+                formId: state.student.formId,
+                firstName: state.student.firstName,
+                lastName: state.student.lastName,
+                sessionToken: savedToken,
+                status: state.student.status,
+                endsAt: state.endsAt,
+              });
+              setView('student_result');
+              return;
+            }
             clearStudentSession();
             return;
           }
@@ -239,6 +257,7 @@ export const App: React.FC = () => {
           studentData={studentData}
           socket={socket}
           onGameStarted={handleGameStarted}
+          onDisqualified={handleTestFinished}
         />
       )}
 

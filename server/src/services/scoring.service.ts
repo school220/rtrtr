@@ -11,6 +11,9 @@ export interface ScoreReport {
   scorePoints: number;
   percentage: number;
   grade: number;
+  isDisqualified?: boolean;
+  disqualifiedBy?: string;
+  disqualificationReason?: string;
 }
 
 export class ScoringService {

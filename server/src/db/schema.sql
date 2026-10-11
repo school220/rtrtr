@@ -123,11 +123,14 @@ CREATE TABLE IF NOT EXISTS students (
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   session_token VARCHAR(128) UNIQUE NOT NULL,
-  status VARCHAR(30) NOT NULL DEFAULT 'READY', -- 'READY', 'IN_PROGRESS', 'FINISHED'
+  status VARCHAR(30) NOT NULL DEFAULT 'READY', -- 'READY', 'IN_PROGRESS', 'FINISHED', 'DISQUALIFIED'
   is_online BOOLEAN NOT NULL DEFAULT TRUE,
   last_active_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finished_at TIMESTAMPTZ,
+  disqualified_by VARCHAR(50),
+  disqualification_reason TEXT,
+  disqualified_at TIMESTAMPTZ,
   CONSTRAINT uq_game_student_id UNIQUE (game_id, student_id)
 );
 

@@ -57,6 +57,21 @@ export async function runMigrations(): Promise<void> {
   } catch {
     // ignore if column exists
   }
+  try {
+    await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualified_by VARCHAR(50)`);
+  } catch {
+    // ignore if column exists
+  }
+  try {
+    await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualification_reason TEXT`);
+  } catch {
+    // ignore if column exists
+  }
+  try {
+    await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS disqualified_at TIMESTAMPTZ`);
+  } catch {
+    // ignore if column exists
+  }
 
   console.log('✅ Database migrations applied successfully.');
 }

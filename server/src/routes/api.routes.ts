@@ -588,6 +588,48 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
+  // 5.1 Teacher kicks/disqualifies student from testing room (protected)
+  router.post('/games/:gameId/student/:studentId/disqualify', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { gameId, studentId } = req.params;
+      const sId = parseInt(studentId, 10);
+      const { disqualifiedBy, reason } = req.body || {};
+      const teacherSession = (req as any).teacher;
+      const teacherId = teacherSession?.teacherId || 1;
+
+      const result = await GameService.disqualifyStudent(gameId, sId, {
+        disqualifiedBy: disqualifiedBy === 'TEACHER' ? 'TEACHER' : 'PROCTOR',
+        reason: (reason || '').trim(),
+        teacherId: teacherSession?.role === 'COMMISSION_CHAIR' ? undefined : teacherId,
+      });
+
+      // 1. Emit instant kick event to the student's individual socket room
+      io.to(`game:${gameId}:student:${sId}`).emit('student:disqualified', {
+        gameId,
+        studentId: sId,
+        disqualifiedBy: result.disqualifiedBy,
+        reason: result.disqualificationReason,
+      });
+
+      // 2. Broadcast updated dashboard to the teacher
+      try {
+        const dashboard = await GameService.getTeacherDashboardData(gameId);
+        io.to(`game:${gameId}:teacher`).emit('teacher:dashboard_update', dashboard);
+      } catch (dashErr) {
+        console.error('Error broadcasting dashboard after student disqualification:', dashErr);
+      }
+
+      console.log(
+        `[SECURITY] 🚨 СТУДЕНТ #${sId} ИСКЛЮЧЕН ИЗ АУДИТОРИИ [${gameId}] (${result.disqualifiedBy}): "${result.disqualificationReason}"`
+      );
+
+      res.json(result);
+    } catch (err: any) {
+      console.error('Error disqualifying student:', err);
+      res.status(400).json({ error: err.message || 'Ошибка исключения ученика' });
+    }
+  });
+
   // 6. Teacher gets dashboard snapshot (protected)
   router.get('/games/:gameId/teacher', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {

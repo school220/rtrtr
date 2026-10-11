@@ -85,15 +85,28 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     };
   }, [requestFullscreen, isProctorPreview]);
 
-  // Socket listener for exam finished
+  // Socket listener for exam finished and student disqualified
   useEffect(() => {
     if (!socket) return;
     const handleGameFinished = () => loadState();
+    const handleDisqualified = async () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      try {
+        const data = await api.getStudentState(gameId, studentId);
+        onFinished(data);
+      } catch {
+        loadState();
+      }
+    };
     socket.on('game:finished', handleGameFinished);
+    socket.on('student:disqualified', handleDisqualified);
     return () => {
       socket.off('game:finished', handleGameFinished);
+      socket.off('student:disqualified', handleDisqualified);
     };
-  }, [socket]);
+  }, [socket, gameId, studentId]);
 
   // Register student presence and room membership in quiz mode (handles F5 / page reloads)
   useEffect(() => {
@@ -123,7 +136,10 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
       const data = await api.getStudentState(gameId, studentId);
       setState(data);
 
-      if (data.gameStatus === 'FINISHED' || data.student.status === 'FINISHED') {
+      if (data.gameStatus === 'FINISHED' || data.student.status === 'FINISHED' || data.student.status === 'DISQUALIFIED') {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
         onFinished(data);
         return;
       }

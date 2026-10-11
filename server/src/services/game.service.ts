@@ -33,6 +33,9 @@ export interface TeacherStudentItem {
   answeredCount: number;
   scoreReport?: any;
   securityEvents?: { pageHidden: number; fullscreenExit: number; disconnected: number; totalSuspicious: number };
+  disqualifiedBy?: string;
+  disqualificationReason?: string;
+  disqualifiedAt?: string;
 }
 
 export class GameService {
@@ -348,7 +351,7 @@ export class GameService {
     await db.query(
       `UPDATE students
        SET status = 'FINISHED', finished_at = CURRENT_TIMESTAMP
-       WHERE game_id = $1 AND status != 'FINISHED'`,
+       WHERE game_id = $1 AND status != 'FINISHED' AND status != 'DISQUALIFIED'`,
       [gameId]
     );
 
@@ -371,6 +374,78 @@ export class GameService {
 
     await EventService.logEvent(gameId, studentId, 'TEST_FINISHED', { manual: true });
     return { success: true };
+  }
+
+  /**
+   * Disqualifies/kicks a student from the test room (on behalf of proctoring or teacher)
+   * and annuls all test results.
+   */
+  public static async disqualifyStudent(
+    gameId: string,
+    studentId: number,
+    options: {
+      disqualifiedBy: 'PROCTOR' | 'TEACHER';
+      reason: string;
+      teacherId?: number;
+    }
+  ) {
+    const db = await getDb();
+    const gameRes = await db.query('SELECT id, teacher_id FROM games WHERE id = $1', [gameId]);
+    if (gameRes.rows.length === 0) {
+      throw new Error('Игра не найдена.');
+    }
+    const game = gameRes.rows[0];
+    if (options.teacherId && game.teacher_id && game.teacher_id !== options.teacherId) {
+      throw new Error('Доступ запрещён: этот тест принадлежит другому проверяющему.');
+    }
+
+    const studentRes = await db.query(
+      'SELECT id, student_id, form_id, first_name, last_name, status FROM students WHERE game_id = $1 AND student_id = $2',
+      [gameId, studentId]
+    );
+    if (studentRes.rows.length === 0) {
+      throw new Error('Ученик не найден.');
+    }
+
+    const cleanReason = (options.reason || '').trim() ||
+      (options.disqualifiedBy === 'PROCTOR'
+        ? 'Система прокторинга зафиксировала подозрительные действия'
+        : 'Исключён экзаменатором за нарушение регламента');
+
+    // Update student status to DISQUALIFIED
+    await db.query(
+      `UPDATE students
+       SET status = 'DISQUALIFIED',
+           disqualified_by = $1,
+           disqualification_reason = $2,
+           disqualified_at = CURRENT_TIMESTAMP,
+           finished_at = CURRENT_TIMESTAMP
+       WHERE game_id = $3 AND student_id = $4`,
+      [options.disqualifiedBy, cleanReason, gameId, studentId]
+    );
+
+    // Annul all answers for this student (zero out points and mark incorrect)
+    await db.query(
+      `UPDATE student_answers
+       SET points = 0, is_correct = FALSE
+       WHERE game_id = $1 AND student_id = $2`,
+      [gameId, studentId]
+    );
+
+    // Log security event
+    await EventService.logEvent(gameId, studentId, 'STUDENT_DISQUALIFIED', {
+      disqualifiedBy: options.disqualifiedBy,
+      reason: cleanReason,
+    }, db);
+
+    return {
+      success: true,
+      gameId,
+      studentId,
+      status: 'DISQUALIFIED',
+      disqualifiedBy: options.disqualifiedBy,
+      disqualificationReason: cleanReason,
+    };
   }
 
   /**
@@ -400,7 +475,8 @@ export class GameService {
 
     // 2. Students list
     const studentsRes = await db.query(
-      `SELECT id, student_id, form_id, first_name, last_name, status, is_online, joined_at, finished_at
+      `SELECT id, student_id, form_id, first_name, last_name, status, is_online, joined_at, finished_at,
+              disqualified_by, disqualification_reason, disqualified_at
        FROM students
        WHERE game_id = $1
        ORDER BY student_id ASC`,
@@ -431,12 +507,30 @@ export class GameService {
 
     const students: TeacherStudentItem[] = studentsRes.rows.map((s) => {
       const studentAnswers = answersByStudent[s.student_id] || [];
-      const scoreReport = ScoringService.calculateReport(
+      let scoreReport = ScoringService.calculateReport(
         s.student_id,
         s.form_id,
         totalQuestions,
         studentAnswers
       );
+
+      if (s.status === 'DISQUALIFIED') {
+        scoreReport = {
+          studentId: s.student_id,
+          formId: s.form_id,
+          totalQuestions,
+          answeredCount: studentAnswers.length,
+          correctAnswers: 0,
+          wrongAnswers: totalQuestions,
+          unanswered: Math.max(0, totalQuestions - studentAnswers.length),
+          scorePoints: 0,
+          percentage: 0,
+          grade: 2,
+          isDisqualified: true,
+          disqualifiedBy: s.disqualified_by,
+          disqualificationReason: s.disqualification_reason,
+        };
+      }
 
       return {
         id: s.id,
@@ -447,8 +541,11 @@ export class GameService {
         status: s.status,
         isOnline: s.is_online,
         answeredCount: studentAnswers.length,
-        scoreReport: game.status === 'FINISHED' || s.status === 'FINISHED' ? scoreReport : undefined,
+        scoreReport: game.status === 'FINISHED' || s.status === 'FINISHED' || s.status === 'DISQUALIFIED' ? scoreReport : undefined,
         securityEvents: securitySummary[s.student_id] || { pageHidden: 0, fullscreenExit: 0, disconnected: 0, totalSuspicious: 0 },
+        disqualifiedBy: s.disqualified_by,
+        disqualificationReason: s.disqualification_reason,
+        disqualifiedAt: s.disqualified_at,
       };
     });
 
@@ -480,7 +577,8 @@ export class GameService {
 
     // 2. Student info
     const studentRes = await db.query(
-      `SELECT id, student_id, form_id, first_name, last_name, status, session_token
+      `SELECT id, student_id, form_id, first_name, last_name, status, session_token,
+              disqualified_by, disqualification_reason, disqualified_at
        FROM students
        WHERE game_id = $1 AND student_id = $2`,
       [gameId, studentId]
@@ -531,9 +629,26 @@ export class GameService {
 
     const currentQuestion = questions.find((q) => q.questionNumber === currentQuestionNumber) || null;
 
-    // If game or student finished, return final score report
+    // If game, student finished, or disqualified, return final score report
     let scoreReport = undefined;
-    if (game.status === 'FINISHED' || student.status === 'FINISHED') {
+    if (student.status === 'DISQUALIFIED') {
+      scoreReport = {
+        studentId: student.student_id,
+        formId: student.form_id,
+        totalQuestions,
+        answeredCount: answeredRes.rows.length,
+        correctAnswers: 0,
+        wrongAnswers: totalQuestions,
+        unanswered: Math.max(0, totalQuestions - answeredRes.rows.length),
+        scorePoints: 0,
+        percentage: 0,
+        grade: 2,
+        passed: false,
+        isDisqualified: true,
+        disqualifiedBy: student.disqualified_by,
+        disqualificationReason: student.disqualification_reason,
+      };
+    } else if (game.status === 'FINISHED' || student.status === 'FINISHED') {
       const fullAnswersRes = await db.query(
         `SELECT is_correct, points FROM student_answers WHERE game_id = $1 AND student_id = $2`,
         [gameId, studentId]
@@ -563,6 +678,9 @@ export class GameService {
         firstName: student.first_name,
         lastName: student.last_name,
         status: student.status,
+        disqualifiedBy: student.disqualified_by,
+        disqualificationReason: student.disqualification_reason,
+        disqualifiedAt: student.disqualified_at,
       },
       currentQuestionNumber,
       currentQuestion,

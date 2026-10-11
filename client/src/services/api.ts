@@ -47,6 +47,9 @@ export interface StudentStateResponse {
     firstName: string;
     lastName: string;
     status: string;
+    disqualifiedBy?: string;
+    disqualificationReason?: string;
+    disqualifiedAt?: string;
   };
   currentQuestionNumber: number;
   currentQuestion?: QuestionData;
@@ -65,6 +68,9 @@ export interface StudentStateResponse {
     scorePoints: number;
     percentage: number;
     grade: number;
+    isDisqualified?: boolean;
+    disqualifiedBy?: string;
+    disqualificationReason?: string;
   };
 }
 
@@ -96,6 +102,9 @@ export interface TeacherDashboardResponse {
       scorePoints: number;
       percentage: number;
       grade: number;
+      isDisqualified?: boolean;
+      disqualifiedBy?: string;
+      disqualificationReason?: string;
     };
     securityEvents: {
       pageHidden: number;
@@ -103,6 +112,9 @@ export interface TeacherDashboardResponse {
       disconnected: number;
       totalSuspicious: number;
     };
+    disqualifiedBy?: string;
+    disqualificationReason?: string;
+    disqualifiedAt?: string;
   }[];
   totalConnected: number;
   maxStudents: number;
@@ -333,6 +345,23 @@ export const api = {
 
   finishStudentTest: (gameId: string, studentId: number) =>
     request<{ success: boolean }>(`/games/${gameId}/student/${studentId}/finish`, { method: 'POST' }),
+
+  disqualifyStudent: (
+    gameId: string,
+    studentId: number,
+    params: { disqualifiedBy: 'PROCTOR' | 'TEACHER'; reason: string }
+  ) =>
+    request<{
+      success: boolean;
+      gameId: string;
+      studentId: number;
+      status: string;
+      disqualifiedBy: string;
+      disqualificationReason: string;
+    }>(`/games/${gameId}/student/${studentId}/disqualify`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
 
   downloadExcel: async (gameId: string, gameCode: string) => {
     const teacherToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(TEACHER_TOKEN_KEY) : null;
