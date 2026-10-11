@@ -2,15 +2,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb, withTransaction } from '../db/index.js';
 import { generateGameCode } from '../utils/code-generator.js';
 import { config } from '../config.js';
-import { QuestionService } from './question.service.js';
+import { QuestionService, StudentSafeQuestion } from './question.service.js';
 import { ScoringService } from './scoring.service.js';
 import { EventService } from './event.service.js';
+import { CustomTestService } from './custom-test.service.js';
 import { sanitizeName } from '../middleware/security.middleware.js';
 
 export interface CreateGameParams {
   title?: string;
   durationSeconds?: number;
   teacherId?: number;
+  customTestId?: string;
 }
 
 export interface JoinGameParams {
@@ -43,6 +45,7 @@ export class GameService {
     const duration = params.durationSeconds || config.testDurationSeconds;
     const title = params.title || 'Классный тест';
     const teacherId = params.teacherId || 1;
+    const customTestId = params.customTestId || null;
 
     // Generate unique game code
     let code = '';
@@ -56,9 +59,9 @@ export class GameService {
     }
 
     await db.query(
-      `INSERT INTO games (id, code, title, status, total_time_seconds, max_students, teacher_id, created_at)
-       VALUES ($1, $2, $3, 'WAITING', $4, $5, $6, CURRENT_TIMESTAMP)`,
-      [gameId, code, title, duration, config.maxStudentsPerGame, teacherId]
+      `INSERT INTO games (id, code, title, status, total_time_seconds, max_students, teacher_id, custom_test_id, created_at)
+       VALUES ($1, $2, $3, 'WAITING', $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+      [gameId, code, title, duration, config.maxStudentsPerGame, teacherId, customTestId]
     );
 
     return {
@@ -69,6 +72,7 @@ export class GameService {
       durationSeconds: duration,
       maxStudents: config.maxStudentsPerGame,
       teacherId,
+      customTestId,
     };
   }
 
@@ -79,7 +83,7 @@ export class GameService {
     const db = await getDb();
     const cleanCode = code.trim().toUpperCase();
     const res = await db.query(
-      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, created_at
+      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, custom_test_id, created_at
        FROM games WHERE code = $1`,
       [cleanCode]
     );
@@ -90,7 +94,7 @@ export class GameService {
   public static async getGameById(gameId: string) {
     const db = await getDb();
     const res = await db.query(
-      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, created_at
+      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, custom_test_id, created_at
        FROM games WHERE id = $1`,
       [gameId]
     );
@@ -235,7 +239,7 @@ export class GameService {
   public static async startGame(gameId: string) {
     return await withTransaction(async (db) => {
       const gameRes = await db.query(
-        `SELECT id, status, total_time_seconds, teacher_id FROM games WHERE id = $1 FOR UPDATE`,
+        `SELECT id, status, total_time_seconds, teacher_id, custom_test_id FROM games WHERE id = $1 FOR UPDATE`,
         [gameId]
       );
       if (gameRes.rows.length === 0) {
@@ -277,11 +281,19 @@ export class GameService {
         }
       }
 
-      // Verify each assigned form has exactly 20 questions
-      for (const s of studentsRes.rows) {
-        const integrity = await QuestionService.verifyFormIntegrity(s.form_id, game.teacher_id || 1, db);
-        if (!integrity.valid) {
-          throw new Error(`Ошибка в бланке №${s.form_id}: ${integrity.errors.join('; ')}`);
+      // Verify test integrity
+      if (game.custom_test_id) {
+        const qCount = await CustomTestService.getQuestionCount(game.custom_test_id, db);
+        if (qCount === 0) {
+          throw new Error('В тесте отсутствуют вопросы.');
+        }
+      } else {
+        // Standard 50-variant curriculum test: verify each assigned form has exactly 20 questions
+        for (const s of studentsRes.rows) {
+          const integrity = await QuestionService.verifyFormIntegrity(s.form_id, game.teacher_id || 1, db);
+          if (!integrity.valid) {
+            throw new Error(`Ошибка в бланке №${s.form_id}: ${integrity.errors.join('; ')}`);
+          }
         }
       }
 
@@ -369,7 +381,7 @@ export class GameService {
 
     // 1. Game info
     const gameRes = await db.query(
-      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, created_at
+      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, custom_test_id, created_at
        FROM games WHERE id = $1`,
       [gameId]
     );
@@ -381,6 +393,10 @@ export class GameService {
       await this.finishGame(gameId, 'TIME_EXPIRED');
       game.status = 'FINISHED';
     }
+
+    const totalQuestions = game.custom_test_id
+      ? await CustomTestService.getQuestionCount(game.custom_test_id)
+      : 20;
 
     // 2. Students list
     const studentsRes = await db.query(
@@ -418,7 +434,7 @@ export class GameService {
       const scoreReport = ScoringService.calculateReport(
         s.student_id,
         s.form_id,
-        20,
+        totalQuestions,
         studentAnswers
       );
 
@@ -441,6 +457,8 @@ export class GameService {
       students,
       totalConnected: students.length,
       maxStudents: game.max_students,
+      totalQuestions,
+      customTestId: game.custom_test_id,
     };
   }
 
@@ -487,20 +505,30 @@ export class GameService {
       };
     }
 
-    // Determine current active question (first unanswered, or 20 if all answered)
+    // Load question definitions for student (custom test or standard curriculum)
+    let totalQuestions = 20;
+    let questions: StudentSafeQuestion[] = [];
+
+    if (game.custom_test_id) {
+      questions = await CustomTestService.getQuestionsForStudent(game.custom_test_id);
+      totalQuestions = questions.length;
+    } else {
+      questions = await QuestionService.getAllQuestionsForStudent(student.form_id, game.teacher_id || 1);
+      totalQuestions = 20;
+    }
+
+    // Determine current active question (first unanswered, or totalQuestions if all answered)
     let currentQuestionNumber = 1;
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= totalQuestions; i++) {
       if (!answeredMap[i]) {
         currentQuestionNumber = i;
         break;
       }
     }
-    if (answeredRes.rows.length >= 20) {
-      currentQuestionNumber = 20;
+    if (answeredRes.rows.length >= totalQuestions) {
+      currentQuestionNumber = totalQuestions;
     }
 
-    // Load all question definitions for student (using the game's teacher_id)
-    const questions = await QuestionService.getAllQuestionsForStudent(student.form_id, game.teacher_id || 1);
     const currentQuestion = questions.find((q) => q.questionNumber === currentQuestionNumber) || null;
 
     // If game or student finished, return final score report
@@ -513,7 +541,7 @@ export class GameService {
       scoreReport = ScoringService.calculateReport(
         student.student_id,
         student.form_id,
-        20,
+        totalQuestions,
         fullAnswersRes.rows.map((r) => ({ isCorrect: r.is_correct === true, points: r.points || 0 }))
       );
     }
@@ -523,6 +551,7 @@ export class GameService {
       gameCode: game.code,
       gameStatus: game.status,
       teacherId: game.teacher_id || 1,
+      customTestId: game.custom_test_id,
       startedAt: game.started_at,
       endsAt: game.ends_at,
       totalTimeSeconds: game.total_time_seconds,
@@ -540,7 +569,7 @@ export class GameService {
       questions,
       answeredMap,
       answeredCount: answeredRes.rows.length,
-      totalQuestions: 20,
+      totalQuestions,
       scoreReport, // Only populated when finished
     };
   }

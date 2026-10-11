@@ -264,13 +264,185 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
   }
 
   const studentFullName = `${state.student.lastName} ${state.student.firstName}`;
-  const totalQuestions = 20;
+  const totalQuestions = state?.totalQuestions || questions.length || 20;
   const answeredCount = Object.keys(answers).filter(
     (k) => answers[Number(k)]?.selectedOptionId || answers[Number(k)]?.answerText?.trim()
   ).length;
 
   const multipleChoiceQuestions = questions.filter((q) => q.type === 'multiple_choice');
   const shortAnswerQuestions = questions.filter((q) => q.type === 'short_answer');
+  const isStandardExam =
+    totalQuestions === 20 &&
+    multipleChoiceQuestions.length === 15 &&
+    shortAnswerQuestions.length === 5;
+
+  const renderMultipleChoiceCard = (q: QuestionData) => {
+    const selectedOptId = answers[q.questionNumber]?.selectedOptionId;
+    const isSaved = savedMap[q.questionNumber] && !!selectedOptId;
+    const isSaving = savingMap[q.questionNumber];
+
+    return (
+      <div
+        key={q.questionNumber}
+        id={`question-${q.questionNumber}`}
+        className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
+          isSaved ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded bg-[#25718f] text-white font-bold text-xs">
+              № {String(q.questionNumber).padStart(2, '0')}
+            </span>
+            <span className="text-gray-500 font-semibold">{t.quizPart1Type}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
+            {isSaving ? (
+              <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                {t.quizSaving}
+              </span>
+            ) : isSaved ? (
+              <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                {t.quizAutoSaved}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Question Text with KaTeX formulas */}
+        <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
+          <MathRenderer content={q.text} />
+        </div>
+
+        {/* Clickable Option Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          {q.options?.map((opt) => {
+            const isSelected = selectedOptId === opt.id;
+
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleSelectOption(q.questionNumber, opt.id)}
+                className={`p-3.5 rounded-lg border text-left flex items-center gap-3 transition-all ${
+                  isSelected
+                    ? 'border-[#25718f] bg-cyan-50/50 ring-2 ring-[#25718f]/30 shadow-sm text-gray-900'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 text-gray-800'
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 rounded font-mono text-xs font-bold flex items-center justify-center shrink-0 border transition-colors ${
+                    isSelected
+                      ? 'bg-[#25718f] border-[#25718f] text-white'
+                      : 'bg-gray-100 border-gray-300 text-gray-700'
+                  }`}
+                >
+                  {opt.label}
+                </div>
+                <div className="text-sm font-medium flex-1">
+                  <MathRenderer content={opt.text} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderShortAnswerCard = (q: QuestionData) => {
+    const currentVal = answers[q.questionNumber]?.answerText || '';
+    const isSaved = savedMap[q.questionNumber] && !!currentVal.trim();
+    const isSaving = savingMap[q.questionNumber];
+
+    return (
+      <div
+        key={q.questionNumber}
+        id={`question-${q.questionNumber}`}
+        className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
+          isSaved ? 'border-purple-300 ring-1 ring-purple-200' : 'border-gray-200'
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded bg-purple-700 text-white font-bold text-xs">
+              № {String(q.questionNumber).padStart(2, '0')}
+            </span>
+            <span className="text-purple-900 font-semibold">{t.quizPart2Type}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
+            {isSaving ? (
+              <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                {t.quizSaving}
+              </span>
+            ) : isSaved ? (
+              <span className="text-purple-700 font-bold flex items-center gap-1 text-[11px] bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                {t.quizAutoSaved}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Question Text with KaTeX formulas */}
+        <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
+          <MathRenderer content={q.text} />
+        </div>
+
+        {/* Short Answer Input Field */}
+        <div className="pt-1 space-y-2">
+          <div className="text-xs font-mono text-gray-500 flex items-center gap-1">
+            <Edit3 className="w-3.5 h-3.5 text-purple-700" />
+            <span>{t.quizShortAnswerHint}</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="text"
+              inputMode="text"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={currentVal}
+              onChange={(e) => handleTextChange(q.questionNumber, e.target.value)}
+              onBlur={() => handleSaveTextAnswer(q.questionNumber)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveTextAnswer(q.questionNumber);
+                }
+              }}
+              placeholder={t.quizShortAnswerPlaceholder}
+              className="flex-1 px-3 sm:px-4 py-2.5 rounded border border-gray-300 font-mono text-base font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-1 focus:ring-purple-200 bg-white"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={() => handleSaveTextAnswer(q.questionNumber)}
+              disabled={isSaving || !currentVal.trim()}
+              className="w-full sm:w-auto py-2.5 px-5 rounded bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{t.quizSaveAnswer}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] flex flex-col font-sans select-none relative pb-24">
@@ -447,64 +619,95 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
               </div>
             </div>
 
-            {/* Matrix Buttons Row: 1 to 20 with horizontal scroll on mobile */}
+            {/* Matrix Buttons Row: 1 to totalQuestions with horizontal scroll on mobile */}
             <div className="overflow-x-auto no-scrollbar py-0.5">
               <div className="flex items-center gap-1 sm:gap-1.5 min-w-max">
-                {/* Part 1: Multiple choice (1..15) */}
-                <span className="text-[10px] font-mono text-[#25718f] font-bold uppercase shrink-0 mr-0.5">
-                  {t.quizPart1Label}
-                </span>
-                {multipleChoiceQuestions.map((q) => {
-                  const isAnswered = !!answers[q.questionNumber]?.selectedOptionId;
-                  const isSaving = savingMap[q.questionNumber];
+                {isStandardExam ? (
+                  <>
+                    {/* Part 1: Multiple choice (1..15) */}
+                    <span className="text-[10px] font-mono text-[#25718f] font-bold uppercase shrink-0 mr-0.5">
+                      {t.quizPart1Label}
+                    </span>
+                    {multipleChoiceQuestions.map((q) => {
+                      const isAnswered = !!answers[q.questionNumber]?.selectedOptionId;
+                      const isSaving = savingMap[q.questionNumber];
 
-                  return (
-                    <button
-                      key={q.questionNumber}
-                      type="button"
-                      onClick={() => scrollToQuestion(q.questionNumber)}
-                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
-                        isSaving
-                          ? 'bg-amber-400 text-white animate-pulse'
-                          : isAnswered
-                          ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
-                          : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
-                    >
-                      {q.questionNumber}
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={q.questionNumber}
+                          type="button"
+                          onClick={() => scrollToQuestion(q.questionNumber)}
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                            isSaving
+                              ? 'bg-amber-400 text-white animate-pulse'
+                              : isAnswered
+                              ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                              : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
+                          }`}
+                          title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
+                        >
+                          {q.questionNumber}
+                        </button>
+                      );
+                    })}
 
-                <div className="w-px h-5 sm:h-6 bg-gray-300 mx-1 shrink-0" />
+                    <div className="w-px h-5 sm:h-6 bg-gray-300 mx-1 shrink-0" />
 
-                {/* Part 2: Short answer (16..20) */}
-                <span className="text-[10px] font-mono text-purple-700 font-bold uppercase shrink-0 mr-0.5">
-                  {t.quizPart2Label}
-                </span>
-                {shortAnswerQuestions.map((q) => {
-                  const isAnswered = !!answers[q.questionNumber]?.answerText?.trim();
-                  const isSaving = savingMap[q.questionNumber];
+                    {/* Part 2: Short answer (16..20) */}
+                    <span className="text-[10px] font-mono text-purple-700 font-bold uppercase shrink-0 mr-0.5">
+                      {t.quizPart2Label}
+                    </span>
+                    {shortAnswerQuestions.map((q) => {
+                      const isAnswered = !!answers[q.questionNumber]?.answerText?.trim();
+                      const isSaving = savingMap[q.questionNumber];
 
-                  return (
-                    <button
-                      key={q.questionNumber}
-                      type="button"
-                      onClick={() => scrollToQuestion(q.questionNumber)}
-                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
-                        isSaving
-                          ? 'bg-amber-400 text-white animate-pulse'
-                          : isAnswered
-                          ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
-                          : 'bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100'
-                      }`}
-                      title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
-                    >
-                      {q.questionNumber}
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={q.questionNumber}
+                          type="button"
+                          onClick={() => scrollToQuestion(q.questionNumber)}
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                            isSaving
+                              ? 'bg-amber-400 text-white animate-pulse'
+                              : isAnswered
+                              ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                              : 'bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100'
+                          }`}
+                          title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
+                        >
+                          {q.questionNumber}
+                        </button>
+                      );
+                    })}
+                  </>
+                ) : (
+                  /* Custom test matrix: all questions in sequential order */
+                  questions.map((q) => {
+                    const isAnswered =
+                      q.type === 'multiple_choice'
+                        ? !!answers[q.questionNumber]?.selectedOptionId
+                        : !!answers[q.questionNumber]?.answerText?.trim();
+                    const isSaving = savingMap[q.questionNumber];
+
+                    return (
+                      <button
+                        key={q.questionNumber}
+                        type="button"
+                        onClick={() => scrollToQuestion(q.questionNumber)}
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
+                          isSaving
+                            ? 'bg-amber-400 text-white animate-pulse'
+                            : isAnswered
+                            ? 'bg-[#00a65a] text-white shadow-sm hover:bg-emerald-700'
+                            : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title={`Savol №${q.questionNumber}${isAnswered ? ' (Saqlangan)' : ''}`}
+                      >
+                        {q.questionNumber}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -521,199 +724,57 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         </div>
       )}
 
-      {/* 3. Main Examination Sheet: All 20 Questions Visible */}
+      {/* 3. Main Examination Sheet */}
       <main className="max-w-4xl w-full mx-auto px-4 py-6 space-y-8">
-        {/* SECTION 1: 15 Multiple Choice Questions (№ 1 - № 15) */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 border-b-2 border-[#25718f] pb-2">
-            <span className="w-3 h-3 rounded-full bg-[#25718f]" />
-            <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight uppercase font-mono">
-              {t.quizSection1Header}
-            </h2>
-          </div>
+        {isStandardExam ? (
+          <>
+            {/* SECTION 1: 15 Multiple Choice Questions (№ 1 - № 15) */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 border-b-2 border-[#25718f] pb-2">
+                <span className="w-3 h-3 rounded-full bg-[#25718f]" />
+                <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight uppercase font-mono">
+                  {t.quizSection1Header}
+                </h2>
+              </div>
 
-          <div className="space-y-4">
-            {multipleChoiceQuestions.map((q) => {
-              const selectedOptId = answers[q.questionNumber]?.selectedOptionId;
-              const isSaved = savedMap[q.questionNumber] && !!selectedOptId;
-              const isSaving = savingMap[q.questionNumber];
+              <div className="space-y-4">
+                {multipleChoiceQuestions.map(renderMultipleChoiceCard)}
+              </div>
+            </section>
 
-              return (
-                <div
-                  key={q.questionNumber}
-                  id={`question-${q.questionNumber}`}
-                  className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
-                    isSaved ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200'
-                  }`}
-                >
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded bg-[#25718f] text-white font-bold text-xs">
-                        № {String(q.questionNumber).padStart(2, '0')}
-                      </span>
-                      <span className="text-gray-500 font-semibold">{t.quizPart1Type}</span>
-                    </div>
+            {/* SECTION 2: 5 Short Answer Questions (№ 16 - № 20) */}
+            <section className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 border-b-2 border-purple-700 pb-2">
+                <span className="w-3 h-3 rounded-full bg-purple-700" />
+                <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight uppercase font-mono">
+                  {t.quizSection2Header}
+                </h2>
+              </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
-                      {isSaving ? (
-                        <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                          {t.quizSaving}
-                        </span>
-                      ) : isSaved ? (
-                        <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          {t.quizAutoSaved}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
-                      )}
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                {shortAnswerQuestions.map(renderShortAnswerCard)}
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Custom Test: Render all questions in sequential numerical order */
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 border-b-2 border-[#25718f] pb-2">
+              <span className="w-3 h-3 rounded-full bg-[#25718f]" />
+              <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight uppercase font-mono">
+                {t.quizSheetTitle} ({questions.length} {t.customTestsQuestionsCount})
+              </h2>
+            </div>
 
-                  {/* Question Text with KaTeX formulas */}
-                  <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
-                    <MathRenderer content={q.text} />
-                  </div>
-
-                  {/* 4 Clickable Option Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    {q.options?.map((opt) => {
-                      const isSelected = selectedOptId === opt.id;
-
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleSelectOption(q.questionNumber, opt.id)}
-                          className={`p-3.5 rounded-lg border text-left flex items-center gap-3 transition-all ${
-                            isSelected
-                              ? 'border-[#25718f] bg-cyan-50/50 ring-2 ring-[#25718f]/30 shadow-sm text-gray-900'
-                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 text-gray-800'
-                          }`}
-                        >
-                          <div
-                            className={`w-7 h-7 rounded font-mono text-xs font-bold flex items-center justify-center shrink-0 border transition-colors ${
-                              isSelected
-                                ? 'bg-[#25718f] border-[#25718f] text-white'
-                                : 'bg-gray-100 border-gray-300 text-gray-700'
-                            }`}
-                          >
-                            {opt.label}
-                          </div>
-                          <div className="text-sm font-medium flex-1">
-                            <MathRenderer content={opt.text} />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* SECTION 2: 5 Short Answer Questions (№ 16 - № 20) */}
-        <section className="space-y-4 pt-2">
-          <div className="flex items-center gap-2 border-b-2 border-purple-700 pb-2">
-            <span className="w-3 h-3 rounded-full bg-purple-700" />
-            <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight uppercase font-mono">
-              {t.quizSection2Header}
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {shortAnswerQuestions.map((q) => {
-              const currentVal = answers[q.questionNumber]?.answerText || '';
-              const isSaved = savedMap[q.questionNumber] && !!currentVal.trim();
-              const isSaving = savingMap[q.questionNumber];
-
-              return (
-                <div
-                  key={q.questionNumber}
-                  id={`question-${q.questionNumber}`}
-                  className={`bg-white border rounded-lg p-5 sm:p-6 shadow-sm space-y-4 transition-all scroll-mt-32 ${
-                    isSaved ? 'border-purple-300 ring-1 ring-purple-200' : 'border-gray-200'
-                  }`}
-                >
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-2 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded bg-purple-700 text-white font-bold text-xs">
-                        № {String(q.questionNumber).padStart(2, '0')}
-                      </span>
-                      <span className="text-purple-900 font-semibold">{t.quizPart2Type}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 font-mono">{t.quizPointVal}</span>
-                      {isSaving ? (
-                        <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                          {t.quizSaving}
-                        </span>
-                      ) : isSaved ? (
-                        <span className="text-purple-700 font-bold flex items-center gap-1 text-[11px] bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
-                          {t.quizAutoSaved}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-[11px]">{t.quizNotAnswered}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Question Text with KaTeX formulas */}
-                  <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
-                    <MathRenderer content={q.text} />
-                  </div>
-
-                  {/* Short Answer Input Field */}
-                  <div className="pt-1 space-y-2">
-                    <div className="text-xs font-mono text-gray-500 flex items-center gap-1">
-                      <Edit3 className="w-3.5 h-3.5 text-purple-700" />
-                      <span>{t.quizShortAnswerHint}</span>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="text"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        value={currentVal}
-                        onChange={(e) => handleTextChange(q.questionNumber, e.target.value)}
-                        onBlur={() => handleSaveTextAnswer(q.questionNumber)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleSaveTextAnswer(q.questionNumber);
-                          }
-                        }}
-                        placeholder={t.quizShortAnswerPlaceholder}
-                        className="flex-1 px-3 sm:px-4 py-2.5 rounded border border-gray-300 font-mono text-base font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-1 focus:ring-purple-200 bg-white"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleSaveTextAnswer(q.questionNumber)}
-                        disabled={isSaving || !currentVal.trim()}
-                        className="w-full sm:w-auto py-2.5 px-5 rounded bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>{t.quizSaveAnswer}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+            <div className="space-y-4">
+              {questions.map((q) =>
+                q.type === 'multiple_choice'
+                  ? renderMultipleChoiceCard(q)
+                  : renderShortAnswerCard(q)
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* 4. Sticky Bottom Submission Bar */}

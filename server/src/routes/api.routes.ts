@@ -7,6 +7,7 @@ import { AnswerService } from '../services/answer.service.js';
 import { QuestionService } from '../services/question.service.js';
 import { EventService } from '../services/event.service.js';
 import { TeacherService } from '../services/teacher.service.js';
+import { CustomTestService } from '../services/custom-test.service.js';
 import { getDb } from '../db/index.js';
 import {
   activeTeacherTokens,
@@ -108,6 +109,154 @@ export function createApiRouter(io: Server): Router {
     res.json({ success: true });
   });
 
+  // ==========================================
+  // Custom Tests ("Мои тесты") Endpoints
+  // ==========================================
+
+  // List all custom tests for the current teacher
+  router.get('/custom-tests', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const tests = await CustomTestService.listTests(teacherId);
+      res.json(tests);
+    } catch (err: any) {
+      console.error('Error listing custom tests:', err);
+      res.status(500).json({ error: err.message || 'Ошибка загрузки тестов' });
+    }
+  });
+
+  // Create a new custom test
+  router.post('/custom-tests', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const { title, durationMinutes, questions } = req.body || {};
+      const newTest = await CustomTestService.createTest(teacherId, {
+        title,
+        durationMinutes,
+        questions,
+      });
+      res.status(201).json(newTest);
+    } catch (err: any) {
+      console.error('Error creating custom test:', err);
+      res.status(400).json({ error: err.message || 'Ошибка создания теста' });
+    }
+  });
+
+  // Get single custom test with all its questions
+  router.get('/custom-tests/:id', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const test = await CustomTestService.getTestById(req.params.id, teacherId);
+      if (!test) {
+        res.status(404).json({ error: 'Тест не найден' });
+        return;
+      }
+      res.json(test);
+    } catch (err: any) {
+      console.error('Error getting custom test:', err);
+      res.status(400).json({ error: err.message || 'Ошибка получения теста' });
+    }
+  });
+
+  // Update an existing custom test
+  router.put('/custom-tests/:id', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const { title, durationMinutes, questions } = req.body || {};
+      const updated = await CustomTestService.updateTest(req.params.id, teacherId, {
+        title,
+        durationMinutes,
+        questions,
+      });
+      res.json(updated);
+    } catch (err: any) {
+      console.error('Error updating custom test:', err);
+      res.status(400).json({ error: err.message || 'Ошибка обновления теста' });
+    }
+  });
+
+  // Delete a custom test
+  router.delete('/custom-tests/:id', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const deleted = await CustomTestService.deleteTest(req.params.id, teacherId);
+      if (!deleted) {
+        res.status(404).json({ error: 'Тест не найден или уже удалён' });
+        return;
+      }
+      res.json({ success: true, message: 'Тест успешно удалён' });
+    } catch (err: any) {
+      console.error('Error deleting custom test:', err);
+      res.status(500).json({ error: err.message || 'Ошибка удаления теста' });
+    }
+  });
+
+  // Launch a live testing room from this custom test
+  router.post('/custom-tests/:id/launch', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const game = await CustomTestService.launchTest(req.params.id, teacherId);
+      res.status(201).json(game);
+    } catch (err: any) {
+      console.error('Error launching custom test:', err);
+      res.status(400).json({ error: err.message || 'Ошибка запуска теста' });
+    }
+  });
+
+  // Proctor preview session for a custom test
+  router.post('/custom-tests/:id/preview', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
+      const test = await CustomTestService.getTestById(req.params.id, teacherId);
+      if (!test) {
+        res.status(404).json({ error: 'Тест не найден' });
+        return;
+      }
+      if (test.questions.length === 0) {
+        res.status(400).json({ error: 'В тесте нет вопросов для предпросмотра' });
+        return;
+      }
+
+      const db = await getDb();
+      const gameId = uuidv4();
+      const code = 'PRK' + Math.floor(100 + Math.random() * 900);
+      const duration = test.durationMinutes * 60;
+      const now = new Date();
+      const endsAt = new Date(now.getTime() + duration * 1000);
+
+      await db.query(
+        `INSERT INTO games (id, code, title, status, total_time_seconds, started_at, ends_at, max_students, teacher_id, custom_test_id, created_at)
+         VALUES ($1, $2, $3, 'IN_PROGRESS', $4, $5, $6, 50, $7, $8, CURRENT_TIMESTAMP)`,
+        [gameId, code, `[Проктор] ${test.title}`, duration, now.toISOString(), endsAt.toISOString(), teacherId, test.id]
+      );
+
+      const studentId = 99;
+      const sessionToken = `prk_sess_${uuidv4()}`;
+      await db.query(
+        `INSERT INTO students (game_id, student_id, form_id, first_name, last_name, session_token, status, is_online, joined_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'IN_PROGRESS', TRUE, CURRENT_TIMESTAMP)`,
+        [gameId, studentId, 1, 'Проктор', 'Комиссия', sessionToken]
+      );
+
+      res.json({
+        isReconnection: false,
+        gameId,
+        gameCode: code,
+        gameStatus: 'IN_PROGRESS',
+        studentId,
+        formId: 1,
+        firstName: 'Проктор',
+        lastName: 'Комиссия',
+        sessionToken,
+        status: 'IN_PROGRESS',
+        endsAt: endsAt.toISOString(),
+      });
+    } catch (err: any) {
+      console.error('Error creating custom test preview:', err);
+      res.status(500).json({ error: err.message || 'Ошибка запуска предпросмотра' });
+    }
+  });
+
   // Proctor Preview Mode: creates an active authentic test session for proctor/teacher
   router.post('/teacher/preview-session', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
@@ -162,7 +311,7 @@ export function createApiRouter(io: Server): Router {
       const db = await getDb();
       const resGames = await db.query(
         `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
-                g.total_time_seconds,
+                g.total_time_seconds, g.custom_test_id,
                 COUNT(s.id)::int as student_count
          FROM games g
          LEFT JOIN students s ON s.game_id = g.id
@@ -186,7 +335,7 @@ export function createApiRouter(io: Server): Router {
       const db = await getDb();
       const resGame = await db.query(
         `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
-                g.total_time_seconds,
+                g.total_time_seconds, g.custom_test_id,
                 COUNT(s.id)::int as student_count
          FROM games g
          LEFT JOIN students s ON s.game_id = g.id

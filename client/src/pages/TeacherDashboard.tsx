@@ -19,6 +19,7 @@ import {
   LogOut,
   PlusCircle,
   FileEdit,
+  BookOpen,
 } from 'lucide-react';
 import { TimerDisplay } from '../components/TimerDisplay.js';
 import { Modal } from '../components/Modal.js';
@@ -30,6 +31,7 @@ interface TeacherDashboardProps {
   socket: Socket | null;
   onBack: () => void;
   onOpenImport?: () => void;
+  onOpenCustomTests?: () => void;
   activeGameId?: string;
   onStartProctorPreview?: (formId: number) => void;
 }
@@ -40,6 +42,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   socket,
   onBack,
   onOpenImport,
+  onOpenCustomTests,
   activeGameId,
   onStartProctorPreview,
 }) => {
@@ -474,6 +477,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">{t.dashNewExamBtn}</span>
             </button>
+
+            {/* My Tests Button ("Мои тесты") */}
+            {onOpenCustomTests && (
+              <button
+                onClick={onOpenCustomTests}
+                className="p-2.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 transition-colors flex items-center gap-1.5 text-xs font-bold shadow-sm"
+                title={t.dashMyTestsBtn}
+              >
+                <BookOpen className="w-4 h-4 text-purple-700" />
+                <span>{t.dashMyTestsBtn}</span>
+              </button>
+            )}
 
             {/* Edit KIM Questions & Answers Button */}
             {onOpenImport && (

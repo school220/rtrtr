@@ -42,6 +42,21 @@ export async function runMigrations(): Promise<void> {
   } catch {
     // ignore if column exists
   }
+  try {
+    await db.query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS custom_test_id VARCHAR(36) REFERENCES custom_tests(id) ON DELETE SET NULL`);
+  } catch {
+    // ignore if column exists
+  }
+  try {
+    await db.query(`ALTER TABLE student_answers ALTER COLUMN question_id DROP NOT NULL`);
+  } catch {
+    // ignore if column modification fails
+  }
+  try {
+    await db.query(`ALTER TABLE student_answers ADD COLUMN IF NOT EXISTS custom_question_id INT REFERENCES custom_test_questions(id) ON DELETE SET NULL`);
+  } catch {
+    // ignore if column exists
+  }
 
   console.log('✅ Database migrations applied successfully.');
 }

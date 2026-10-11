@@ -384,7 +384,93 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(formData),
     }),
+
+  // ==========================================
+  // Custom Tests ("Мои тесты") API methods
+  // ==========================================
+  getCustomTests: () =>
+    request<CustomTestSummary[]>('/custom-tests'),
+
+  getCustomTest: (id: string) =>
+    request<CustomTestDetail>(`/custom-tests/${id}`),
+
+  createCustomTest: (data: {
+    title: string;
+    durationMinutes: number;
+    questions: CustomQuestionItem[];
+  }) =>
+    request<CustomTestDetail>('/custom-tests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateCustomTest: (
+    id: string,
+    data: {
+      title: string;
+      durationMinutes: number;
+      questions: CustomQuestionItem[];
+    }
+  ) =>
+    request<CustomTestDetail>(`/custom-tests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteCustomTest: (id: string) =>
+    request<{ success: boolean; message?: string }>(`/custom-tests/${id}`, {
+      method: 'DELETE',
+    }),
+
+  launchCustomTest: (id: string) =>
+    request<any>(`/custom-tests/${id}/launch`, {
+      method: 'POST',
+    }),
+
+  previewCustomTest: (id: string) =>
+    request<JoinGameResponse>(`/custom-tests/${id}/preview`, {
+      method: 'POST',
+    }),
 };
+
+export type CustomQuestionType = 'four_options' | 'yes_no' | 'free_input';
+
+export interface CustomOptionItem {
+  id?: number;
+  label: string;
+  text: string;
+  isCorrect?: boolean;
+}
+
+export interface CustomQuestionItem {
+  id?: number;
+  questionNumber?: number;
+  questionText: string;
+  questionType: CustomQuestionType;
+  correctAnswer?: string;
+  options?: CustomOptionItem[];
+  points?: number;
+}
+
+export interface CustomTestSummary {
+  id: string;
+  teacherId: number;
+  title: string;
+  durationMinutes: number;
+  questionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomTestDetail {
+  id: string;
+  teacherId: number;
+  title: string;
+  durationMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+  questions: CustomQuestionItem[];
+}
 
 export interface FormDetailResponse {
   form_id: number;

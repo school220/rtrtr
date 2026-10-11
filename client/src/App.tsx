@@ -7,6 +7,7 @@ import { StudentResult } from './pages/StudentResult.js';
 import { TeacherLogin } from './pages/TeacherLogin.js';
 import { TeacherDashboard } from './pages/TeacherDashboard.js';
 import { TeacherImport } from './pages/TeacherImport.js';
+import { TeacherCustomTests } from './pages/TeacherCustomTests.js';
 import { useSocket } from './hooks/useSocket.js';
 import { JoinGameResponse, StudentStateResponse, api } from './services/api.js';
 
@@ -18,7 +19,8 @@ type ViewMode =
   | 'student_result'
   | 'teacher_login'
   | 'teacher'
-  | 'import';
+  | 'import'
+  | 'custom_tests';
 
 /**
  * Checks if current browser URL corresponds to the private teacher/proctor portal
@@ -48,7 +50,8 @@ export const App: React.FC = () => {
   const [studentData, setStudentData] = useState<JoinGameResponse | null>(null);
   const [studentState, setStudentState] = useState<StudentStateResponse | null>(null);
   const [isProctorPreview, setIsProctorPreview] = useState(false);
-  const [proctorReturnView, setProctorReturnView] = useState<'teacher' | 'import'>('teacher');
+  const [proctorReturnView, setProctorReturnView] = useState<'teacher' | 'import' | 'custom_tests'>('teacher');
+  const [activeTeacherGameId, setActiveTeacherGameId] = useState<string | undefined>(undefined);
   const { socket } = useSocket();
 
   const clearStudentSession = () => {
@@ -86,6 +89,19 @@ export const App: React.FC = () => {
       setStudentData(previewData);
       setIsProctorPreview(true);
       setProctorReturnView(returnTo);
+      setView('student_quiz');
+    } catch (err: any) {
+      alert(err.message || 'Ошибка запуска предпросмотра теста');
+    }
+  };
+
+  // Launch proctor preview mode for a custom test
+  const handleStartCustomTestPreview = async (customTestId: string) => {
+    try {
+      const previewData = await api.previewCustomTest(customTestId);
+      setStudentData(previewData);
+      setIsProctorPreview(true);
+      setProctorReturnView('custom_tests');
       setView('student_quiz');
     } catch (err: any) {
       alert(err.message || 'Ошибка запуска предпросмотра теста');
@@ -262,8 +278,10 @@ export const App: React.FC = () => {
       {view === 'teacher' && (
         <TeacherDashboard
           socket={socket}
+          activeGameId={activeTeacherGameId}
           onBack={handleTeacherLogout}
           onOpenImport={() => setView('import')}
+          onOpenCustomTests={() => setView('custom_tests')}
           onStartProctorPreview={(formId) => handleStartProctorPreview(formId, 'teacher')}
         />
       )}
@@ -272,6 +290,18 @@ export const App: React.FC = () => {
         <TeacherImport
           onBack={() => setView('teacher')}
           onStartProctorPreview={(formId) => handleStartProctorPreview(formId, 'import')}
+        />
+      )}
+
+      {view === 'custom_tests' && (
+        <TeacherCustomTests
+          onBack={() => setView('teacher')}
+          onLaunchGame={(gameId) => {
+            localStorage.setItem('teacher_active_game_id', gameId);
+            setActiveTeacherGameId(gameId);
+            setView('teacher');
+          }}
+          onStartPreview={(customTestId) => handleStartCustomTestPreview(customTestId)}
         />
       )}
     </div>

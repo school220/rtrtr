@@ -14,6 +14,34 @@ CREATE TABLE IF NOT EXISTS teachers (
 
 CREATE INDEX IF NOT EXISTS idx_teachers_username ON teachers(username);
 
+-- Custom Tests (Teacher-authored tests and quizzes)
+CREATE TABLE IF NOT EXISTS custom_tests (
+  id VARCHAR(36) PRIMARY KEY,
+  teacher_id INT NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  duration_minutes INT NOT NULL DEFAULT 30,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_custom_tests_teacher ON custom_tests(teacher_id);
+
+-- Custom Test Questions (Questions belonging to teacher-authored tests)
+CREATE TABLE IF NOT EXISTS custom_test_questions (
+  id SERIAL PRIMARY KEY,
+  test_id VARCHAR(36) NOT NULL REFERENCES custom_tests(id) ON DELETE CASCADE,
+  question_number INT NOT NULL,
+  question_text TEXT NOT NULL,
+  question_type VARCHAR(30) NOT NULL, -- 'four_options', 'yes_no', 'free_input'
+  correct_answer TEXT NOT NULL,
+  options TEXT, -- JSON array of options: [{"id": 1, "label": "A", "text": "...", "isCorrect": boolean}]
+  points INT NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_custom_test_question UNIQUE (test_id, question_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_custom_test_questions_test ON custom_test_questions(test_id);
+
 -- Games (Active and historical testing sessions per examiner)
 CREATE TABLE IF NOT EXISTS games (
   id VARCHAR(36) PRIMARY KEY,
@@ -26,12 +54,14 @@ CREATE TABLE IF NOT EXISTS games (
   finished_at TIMESTAMPTZ,
   max_students INT NOT NULL DEFAULT 50,
   teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1,
+  custom_test_id VARCHAR(36) REFERENCES custom_tests(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_games_code ON games(code);
 CREATE INDEX IF NOT EXISTS idx_games_status ON games(status);
 CREATE INDEX IF NOT EXISTS idx_games_teacher_id ON games(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_games_custom_test_id ON games(custom_test_id);
 
 -- Forms (Each test variant has a form_id 1..50 isolated per examiner)
 CREATE TABLE IF NOT EXISTS forms (
@@ -111,7 +141,8 @@ CREATE TABLE IF NOT EXISTS student_answers (
   student_id INT NOT NULL,
   form_id INT NOT NULL,
   question_number INT NOT NULL, -- 1..30
-  question_id INT NOT NULL REFERENCES questions(id),
+  question_id INT REFERENCES questions(id),
+  custom_question_id INT REFERENCES custom_test_questions(id) ON DELETE SET NULL,
   selected_option_id INT REFERENCES answer_options(id),
   answer_text TEXT,
   is_correct BOOLEAN NOT NULL DEFAULT FALSE,
