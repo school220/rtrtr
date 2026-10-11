@@ -9,6 +9,7 @@ import {
   Clock,
   Send,
   Edit3,
+  Eye,
 } from 'lucide-react';
 import { MathRenderer } from '../components/MathRenderer.js';
 import { TimerDisplay } from '../components/TimerDisplay.js';
@@ -333,12 +334,12 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         </div>
 
         {/* Question Text with KaTeX formulas */}
-        <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
+        <div className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed tracking-normal">
           <MathRenderer content={q.text} />
         </div>
 
         {/* Clickable Option Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {q.options?.map((opt) => {
             const isSelected = selectedOptId === opt.id;
 
@@ -347,22 +348,22 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                 key={opt.id}
                 type="button"
                 onClick={() => handleSelectOption(q.questionNumber, opt.id)}
-                className={`p-3.5 rounded-lg border text-left flex items-center gap-3 transition-all ${
+                className={`min-h-[58px] p-3.5 sm:p-4 rounded-xl border text-left flex items-center gap-3.5 transition-all active:scale-[0.99] ${
                   isSelected
-                    ? 'border-[#25718f] bg-cyan-50/50 ring-2 ring-[#25718f]/30 shadow-sm text-gray-900'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 text-gray-800'
+                    ? 'border-[#25718f] bg-cyan-50/70 ring-2 ring-[#25718f]/40 shadow-sm text-gray-950 font-semibold'
+                    : 'border-gray-200 bg-white hover:border-[#25718f]/40 hover:bg-cyan-50/20 text-gray-800'
                 }`}
               >
                 <div
-                  className={`w-7 h-7 rounded font-mono text-xs font-bold flex items-center justify-center shrink-0 border transition-colors ${
+                  className={`w-8 h-8 rounded-lg font-mono text-xs sm:text-sm font-bold flex items-center justify-center shrink-0 border transition-all ${
                     isSelected
-                      ? 'bg-[#25718f] border-[#25718f] text-white'
+                      ? 'bg-[#25718f] border-[#25718f] text-white shadow-xs'
                       : 'bg-gray-100 border-gray-300 text-gray-700'
                   }`}
                 >
                   {opt.label}
                 </div>
-                <div className="text-sm font-medium flex-1">
+                <div className="text-base sm:text-lg font-semibold flex-1 py-1 overflow-x-auto no-scrollbar">
                   <MathRenderer content={opt.text} />
                 </div>
               </button>
@@ -414,15 +415,46 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         </div>
 
         {/* Question Text with KaTeX formulas */}
-        <div className="text-base sm:text-lg font-semibold text-gray-900 leading-relaxed">
+        <div className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed tracking-normal">
           <MathRenderer content={q.text} />
         </div>
 
-        {/* Short Answer Input Field */}
-        <div className="pt-1 space-y-2">
-          <div className="text-xs font-mono text-gray-500 flex items-center gap-1">
+        {/* Short Answer Input Field & Student Quick Math Ribbon */}
+        <div className="pt-1 space-y-3">
+          <div className="text-xs font-mono text-gray-600 flex items-center gap-1.5 font-medium">
             <Edit3 className="w-3.5 h-3.5 text-purple-700" />
             <span>{t.quizShortAnswerHint}</span>
+          </div>
+
+          {/* Quick Math Symbols Helper for Students */}
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-gray-50 border border-gray-200 text-xs font-mono">
+            <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">
+              {t.quizQuickSymbols || 'Быстрый ввод:'}
+            </span>
+            {[
+              { label: '/ (дробь)', value: '/' },
+              { label: ', (запятая)', value: ',' },
+              { label: '.', value: '.' },
+              { label: '-', value: '-' },
+              { label: '+', value: '+' },
+              { label: '√', value: '√' },
+              { label: 'x²', value: '²' },
+              { label: 'x³', value: '³' },
+              { label: 'π', value: 'π' },
+            ].map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => {
+                  const updated = currentVal + item.value;
+                  handleTextChange(q.questionNumber, updated);
+                }}
+                className="px-2.5 py-1 rounded bg-white hover:bg-purple-50 active:bg-purple-100 border border-gray-300 hover:border-purple-300 text-gray-800 font-bold text-xs transition-colors shadow-2xs"
+                title={`Вставить ${item.label}`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -442,19 +474,32 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                 }
               }}
               placeholder={t.quizShortAnswerPlaceholder}
-              className="flex-1 px-3 sm:px-4 py-2.5 rounded border border-gray-300 font-mono text-base font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-1 focus:ring-purple-200 bg-white"
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 font-mono text-lg font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
               autoComplete="off"
             />
             <button
               type="button"
               onClick={() => handleSaveTextAnswer(q.questionNumber)}
               disabled={isSaving || !currentVal.trim()}
-              className="w-full sm:w-auto py-2.5 px-5 rounded bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+              className="w-full sm:w-auto py-3 px-6 rounded-lg bg-purple-700 hover:bg-purple-800 active:scale-98 text-white font-bold text-xs uppercase tracking-wider font-mono shadow flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{t.quizSaveAnswer}</span>
             </button>
           </div>
+
+          {/* Real-Time Live Math Preview of Student Input */}
+          {currentVal.trim() && (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-purple-50/80 border border-purple-200 text-purple-950 shadow-xs animate-in fade-in-50 duration-200">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-700 shrink-0 uppercase tracking-wider">
+                <Eye className="w-3.5 h-3.5" />
+                <span>{t.quizPreviewFormula || 'Предпросмотр:'}</span>
+              </div>
+              <div className="text-base sm:text-lg font-bold text-gray-950 overflow-x-auto no-scrollbar py-0.5">
+                <MathRenderer content={currentVal} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

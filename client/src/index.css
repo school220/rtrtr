@@ -40,19 +40,37 @@ input, textarea {
   }
 }
 
-/* Ensure math formulas never break layout or cause horizontal overflow */
+/* Ensure math formulas render large, crisp, and readable like Desmos */
 .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 0.5rem 0;
-  margin: 0.5rem 0 !important;
+  padding: 0.6rem 0;
+  margin: 0.65rem 0 !important;
   max-width: 100%;
+  text-align: center;
 }
 
 .katex {
-  font-size: 1.15em;
+  font-size: 1.18em !important;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
   max-width: 100%;
   white-space: normal;
+  line-height: 1.4;
+}
+
+/* Ensure fractions have crisp fraction bars and readable vertical space */
+.katex .mfrac {
+  margin: 0 0.12em;
+}
+
+.katex .mfrac .frac-line {
+  border-bottom-width: 0.055em !important;
+}
+
+/* Clear alignment and spacing for square roots / radicals */
+.katex .sqrt > .root {
+  margin-left: 0.12em;
 }
 
 /* Explicitly hide any MathML duplicate text */
