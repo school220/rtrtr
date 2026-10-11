@@ -24,6 +24,9 @@ import {
   Menu,
   X,
   Sparkles,
+  Copy,
+  Check,
+  Search,
 } from 'lucide-react';
 import { TimerDisplay } from '../components/TimerDisplay.js';
 import { Modal } from '../components/Modal.js';
@@ -42,6 +45,7 @@ interface TeacherDashboardProps {
 }
 
 type SortField = 'id' | 'name' | 'progress' | 'grade' | 'score' | 'suspicious';
+type FilterStatus = 'all' | 'online' | 'finished' | 'suspicious';
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   socket,
@@ -64,6 +68,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showCreateTestModal, setShowCreateTestModal] = useState(false);
   const [previewVariantNumber, setPreviewVariantNumber] = useState(1);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+
   const [recentGames, setRecentGames] = useState<{
     id: string;
     code: string;
@@ -346,6 +354,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     }
   };
 
+  const handleCopyCode = () => {
+    if (!dashboard?.game?.code) return;
+    navigator.clipboard.writeText(dashboard.game.code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   const exportCsv = () => {
     if (!dashboard) return;
     const rows = [
@@ -445,12 +460,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   if (loading || !dashboard) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center p-4 text-gray-600">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-[#25718f] border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold tracking-wide uppercase text-gray-500 font-mono">
-            {t.brand}...
-          </span>
+      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4 text-slate-300">
+        <div className="flex flex-col items-center gap-4 bg-slate-900/80 border border-slate-800 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+          <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+          <div className="text-center space-y-1">
+            <span className="text-xs font-black tracking-widest uppercase text-cyan-400 font-mono block">
+              HEMIS EXAM CENTER
+            </span>
+            <span className="text-xs text-slate-400">Синхронизация данных экзаменатора...</span>
+          </div>
         </div>
       </div>
     );
@@ -462,88 +480,128 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const isFinished = game.status === 'FINISHED' || game.status === 'TIME_EXPIRED';
   const sortedStudents = getSortedStudents();
 
+  // Search and Filtered students
+  const filteredStudents = sortedStudents.filter((st) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query === '' ||
+      `${st.lastName} ${st.firstName}`.toLowerCase().includes(query) ||
+      String(st.studentId).includes(query);
+
+    if (!matchesSearch) return false;
+
+    if (filterStatus === 'online') return st.isOnline;
+    if (filterStatus === 'finished') return st.status === 'FINISHED';
+    if (filterStatus === 'suspicious') return (st.securityEvents?.totalSuspicious || 0) > 0;
+    return true;
+  });
+
   // Aggregate security incidents
   const totalIncidents = students.reduce((acc, st) => acc + (st.securityEvents?.totalSuspicious || 0), 0);
   const finishedCount = students.filter((s) => s.status === 'FINISHED').length;
+  const attendanceRate = Math.min(100, Math.round((totalConnected / Math.max(1, maxStudents)) * 100));
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] text-[#222d32] p-3 sm:p-5 pt-safe pb-safe select-none max-w-7xl mx-auto space-y-4 font-sans animate-fade-in">
-      {/* Top Header Card */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 card-interactive">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#090d16] text-slate-100 p-3 sm:p-6 pt-safe pb-safe select-none max-w-7xl mx-auto space-y-5 font-sans relative overflow-x-hidden">
+      {/* Background Decorative Ambient Gradients */}
+      <div className="fixed top-[-15%] left-[20%] w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="fixed top-[30%] right-[10%] w-[450px] h-[450px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* ========================================================= */}
+      {/* 1. TOP EXECUTIVE HEADER CARD */}
+      {/* ========================================================= */}
+      <header className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+          {/* Left: Brand, Teacher & Status */}
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={onBack}
-              className="p-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
-              title="Bosh sahifaga"
+              className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 shadow-sm active:scale-95"
+              title="Выйти в меню"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
+
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-[#25718f] bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded font-mono">
-                  {t.dashBadge}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-black tracking-widest uppercase text-cyan-300 bg-cyan-950/80 border border-cyan-800/80 px-2.5 py-0.5 rounded-md font-mono flex items-center gap-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  HEMIS PROCTOR
                 </span>
-                <span className="text-[11px] font-bold tracking-wider uppercase text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono flex items-center gap-1">
-                  <span>{t.dashTeacherLabel}:</span>
-                  <span className="font-extrabold text-purple-950">{api.getTeacherInfo()?.fullName || 'Проверяющий'}</span>
+
+                <span className="text-[10px] font-black tracking-wider uppercase text-purple-300 bg-purple-950/80 border border-purple-800/80 px-2.5 py-0.5 rounded-md font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span>{api.getTeacherInfo()?.fullName || 'Экзаменатор'}</span>
                 </span>
+
                 <span
-                  className={`text-[11px] px-2.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                  className={`text-[10px] px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider font-mono border ${
                     isWaiting
-                      ? 'bg-amber-100 text-amber-800'
+                      ? 'bg-amber-950/60 border-amber-600/60 text-amber-300'
                       : isInProgress
-                      ? 'bg-cyan-100 text-[#25718f] animate-pulse'
-                      : 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-cyan-950/80 border-cyan-500/80 text-cyan-300 animate-pulse'
+                      : 'bg-emerald-950/60 border-emerald-600/60 text-emerald-300'
                   }`}
                 >
                   {isWaiting ? t.dashStatusWaiting : isInProgress ? t.dashStatusInProgress : t.dashStatusFinished}
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mt-1">
-                {t.dashHeading}
+
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1.5 flex items-center gap-2">
+                <span>{t.dashHeading}</span>
               </h1>
-              <p className="text-xs text-gray-500 font-mono">
-                {t.dashSession} #{game.id.slice(0, 8).toUpperCase()} • Matematika (5-sinf / 1-kurs, 20 ta savol)
+              <p className="text-xs text-slate-400 font-mono mt-0.5">
+                {t.dashSession} #{game.id.slice(0, 8).toUpperCase()} • {game.title || 'Математика'}
               </p>
             </div>
           </div>
 
-          {/* Action buttons: Clean header with Drawer Menu Toggle */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Right: Studio Launcher & Global Controls */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* HERO BUTTON: FULLSCREEN TEST STUDIO */}
+            <button
+              onClick={() => setShowCreateTestModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all group"
+              title="Открыть полноэкранную студию создания тестов"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950 group-hover:rotate-12 transition-transform" />
+              <span>Создать тест</span>
+            </button>
+
             {/* Quick Refresh */}
             <button
               onClick={() => gameId && loadDashboard(gameId)}
-              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors border border-gray-200"
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 shadow-sm active:scale-95"
               title={t.dashRefresh}
             >
-              <RefreshCw className="w-4 h-4 text-[#25718f]" />
+              <RefreshCw className="w-4 h-4 text-cyan-400" />
             </button>
 
-            {/* Side Drawer Menu Toggle Button */}
+            {/* Slide Drawer Toggle */}
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-[#1e282c] hover:bg-[#28363c] text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 border border-cyan-800/40 group"
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 border border-slate-700/80 group"
             >
               <Menu className="w-4 h-4 text-cyan-400 group-hover:rotate-90 transition-transform duration-200" />
-              <span className="tracking-wide">Меню управления</span>
+              <span className="hidden sm:inline">Меню</span>
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             </button>
 
+            {/* Excel Download on Finished */}
             {isFinished && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => gameId && api.downloadExcel(gameId, game.code)}
-                  className="py-2.5 px-4 rounded bg-[#00a65a] hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow transition-all active:scale-95"
+                  className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                   title="Excel (.xlsx)"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-white" />
+                  <FileSpreadsheet className="w-4 h-4 text-slate-950" />
                   <span>{t.dashExcel}</span>
                 </button>
 
                 <button
                   onClick={exportCsv}
-                  className="py-2.5 px-3 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-1 border border-gray-300 transition-colors"
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1 border border-slate-700 transition-colors"
                   title="CSV"
                 >
                   <Download className="w-4 h-4" />
@@ -552,21 +610,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
             )}
 
+            {/* Start Button */}
             {isWaiting && (
               <button
                 disabled={starting || totalConnected === 0}
                 onClick={handleStartGame}
-                className="py-2.5 px-6 rounded bg-[#25718f] hover:bg-[#1f5f79] active:scale-98 text-white font-black text-xs uppercase tracking-wider shadow flex items-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
               >
-                <Play className="w-4 h-4 fill-white" />
+                <Play className="w-4 h-4 fill-slate-950 text-slate-950" />
                 <span>{starting ? t.dashStarting : t.dashStartExam}</span>
               </button>
             )}
 
+            {/* Finish Button */}
             {isInProgress && (
               <button
                 onClick={() => setShowFinishConfirm(true)}
-                className="py-2.5 px-4 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-colors"
+                className="py-2.5 px-4 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-900/30 transition-all active:scale-95 border border-rose-500/50"
               >
                 <Square className="w-4 h-4 fill-white" />
                 <span>{t.dashFinishAll}</span>
@@ -575,49 +635,87 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        {/* Status metric badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {/* Game Code Card */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block font-mono">
-              {t.dashPinLabel}
-            </span>
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-[#25718f]">
+        {/* ========================================================= */}
+        {/* 2. HIGH-TECH KPI CARDS GRID */}
+        {/* ========================================================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {/* Card 1: Game PIN Card */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-700/80 space-y-1.5 shadow-lg relative group overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                {t.dashPinLabel}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="p-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-cyan-300 hover:text-white transition-all text-xs flex items-center gap-1"
+                title="Скопировать код"
+              >
+                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span className="text-[10px] font-mono">{copiedCode ? 'Скопировано!' : 'Копировать'}</span>
+              </button>
+            </div>
+            <div className="text-3xl sm:text-4xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 py-0.5">
               {game.code}
             </div>
-          </div>
-
-          {/* Connected Candidates */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 font-mono">
-              <Users className="w-3 h-3 text-gray-400" />
-              <span>{t.dashAttendees}</span>
-            </span>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-gray-900">
-              {totalConnected} <span className="text-xs text-gray-400 font-semibold">/ {maxStudents}</span>
+            <div className="text-[11px] text-slate-400 flex items-center gap-1">
+              <span>Для входа кандидатов</span>
             </div>
           </div>
 
-          {/* Exam Status & Progress */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 font-mono">
-              <Activity className="w-3 h-3 text-gray-400" />
-              <span>{t.dashSubmitted}</span>
-            </span>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-600">
-              {finishedCount} <span className="text-xs text-gray-400 font-semibold">/ {students.length}</span>
-            </div>
-          </div>
-
-          {/* Timer status */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-1">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between font-mono">
+          {/* Card 2: Connected Candidates */}
+          <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2 shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between font-mono">
               <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-gray-400" />
+                <Users className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{t.dashAttendees}</span>
+              </span>
+              <span className="text-cyan-400 font-bold">{attendanceRate}%</span>
+            </span>
+            <div className="text-2xl sm:text-3xl font-black font-mono text-white">
+              {totalConnected} <span className="text-xs text-slate-400 font-semibold font-mono">/ {maxStudents}</span>
+            </div>
+            <div className="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-cyan-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                style={{ width: `${attendanceRate}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Card 3: Submitted Work */}
+          <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2 shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between font-mono">
+              <span className="flex items-center gap-1">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{t.dashSubmitted}</span>
+              </span>
+              <span className="text-emerald-400 font-bold">
+                {students.length > 0 ? Math.round((finishedCount / students.length) * 100) : 0}%
+              </span>
+            </span>
+            <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-400">
+              {finishedCount} <span className="text-xs text-slate-400 font-semibold font-mono">/ {students.length}</span>
+            </div>
+            <div className="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${students.length > 0 ? Math.round((finishedCount / students.length) * 100) : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Card 4: Exam Duration / Live Timer */}
+          <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5 shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between font-mono">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
                 <span>{isInProgress ? t.dashTimeRemaining : t.dashTimeDuration}</span>
               </span>
               {isWaiting && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-600/40 font-bold uppercase font-mono">
                   {t.dashSetDuration}
                 </span>
               )}
@@ -625,10 +723,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
             <div>
               {isInProgress && game.ends_at ? (
-                <TimerDisplay
-                  endsAt={game.ends_at}
-                  onExpire={() => gameId && loadDashboard(gameId)}
-                />
+                <div className="text-2xl font-black font-mono text-cyan-300">
+                  <TimerDisplay
+                    endsAt={game.ends_at}
+                    onExpire={() => gameId && loadDashboard(gameId)}
+                  />
+                </div>
               ) : isWaiting ? (
                 <div className="space-y-1.5 pt-0.5">
                   <div className="flex items-center gap-1.5">
@@ -641,24 +741,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveDuration();
                       }}
-                      className="w-14 px-1.5 py-0.5 text-xs font-mono font-black border border-gray-300 rounded focus:ring-1 focus:ring-[#25718f] bg-white text-gray-900 shadow-inner"
-                      title="Введите минуты (например: 21, 22)"
+                      className="w-14 px-2 py-0.5 text-xs font-mono font-black border border-slate-600 rounded bg-slate-900 text-white focus:ring-1 focus:ring-cyan-400 focus:outline-none"
+                      title="Введите минуты"
                     />
-                    <span className="text-xs font-mono font-bold text-gray-700">{t.dashDurationMinLabel}</span>
+                    <span className="text-xs font-mono text-slate-300">{t.dashDurationMinLabel}</span>
                     <button
                       type="button"
                       disabled={savingDuration || !customMinutes}
                       onClick={handleSaveDuration}
-                      className="ml-auto px-2 py-0.5 text-[10px] font-mono font-bold bg-[#25718f] hover:bg-[#1f5f79] text-white rounded transition-colors disabled:opacity-50 shadow-xs"
+                      className="ml-auto px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-600 hover:bg-cyan-500 text-slate-950 rounded transition-colors disabled:opacity-50 shadow-xs"
                       title="Сохранить время"
                     >
                       {savingDuration ? '...' : t.dashSaveDuration}
                     </button>
                   </div>
 
-                  {/* Quick pills for instant selection: 20, 21, 22, 25, 30 */}
+                  {/* Fast selection pills */}
                   <div className="flex flex-wrap items-center gap-1">
-                    {[20, 21, 22, 25, 30].map((mins) => (
+                    {[15, 20, 25, 30, 45, 60].map((mins) => (
                       <button
                         key={mins}
                         type="button"
@@ -666,10 +766,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         onClick={() => handleQuickSetDuration(mins)}
                         className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded transition-all ${
                           Math.round(game.total_time_seconds / 60) === mins
-                            ? 'bg-[#25718f] text-white shadow-xs scale-105'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-cyan-500 text-slate-950 shadow-xs scale-105'
+                            : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
                         }`}
-                        title={`Назначить ${mins} минут`}
                       >
                         {mins}м
                       </button>
@@ -677,178 +776,269 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="text-xl sm:text-2xl font-bold font-mono text-gray-900">
+                <div className="text-2xl font-bold font-mono text-white">
                   {Math.round(game.total_time_seconds / 60)} {t.dashDurationMinLabel}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Security alerts badge */}
-          <div className="p-3 rounded bg-gray-50 border border-gray-200 space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 font-mono">
-              {totalIncidents > 0 ? (
-                <ShieldAlert className="w-3 h-3 text-rose-500" />
-              ) : (
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              )}
-              <span>{t.dashIncidents}</span>
+          {/* Card 5: Security & Anti-Cheat Incidents */}
+          <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5 shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between font-mono">
+              <span className="flex items-center gap-1">
+                {totalIncidents > 0 ? (
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                ) : (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>{t.dashIncidents}</span>
+              </span>
+              <span className={`text-[10px] font-bold uppercase font-mono ${totalIncidents > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {totalIncidents > 0 ? 'Внимание' : 'Чисто'}
+              </span>
             </span>
-            <div className={`text-2xl sm:text-3xl font-black font-mono ${totalIncidents > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+
+            <div className={`text-2xl sm:text-3xl font-black font-mono ${totalIncidents > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {totalIncidents}
+            </div>
+
+            <div className="text-[11px] text-slate-400 font-mono">
+              {totalIncidents === 0 ? 'Нарушений не зафиксировано' : 'Зафиксированы попытки списания'}
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Error banner */}
+      {/* Global Error Banner */}
       {error && (
-        <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+        <div className="p-4 rounded-2xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2.5 backdrop-blur-md">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Main Student Roster Table */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wide">
-              <Layers className="w-4 h-4 text-[#25718f]" />
-              <span>{t.dashTableTitle}</span>
-              <span className="text-xs font-mono font-bold text-[#25718f] bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200">
-                {students.length} nafar
-              </span>
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {t.dashTableSub}
-            </p>
+      {/* ========================================================= */}
+      {/* 3. MAIN STUDENT ROSTER DATAGRID CARD */}
+      {/* ========================================================= */}
+      <section className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Datagrid Toolbar */}
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                <span>{t.dashTableTitle}</span>
+                <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">
+                  {students.length}
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {t.dashTableSub}
+              </p>
+            </div>
           </div>
 
-          {isFinished && (
-            <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              {t.dashGradesCalculated}
-            </span>
-          )}
+          {/* Search & Filter Controls */}
+          <div className="flex items-center gap-2.5 flex-wrap flex-1 justify-end max-w-xl">
+            {/* Search Input */}
+            <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по имени или ID..."
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Status Filter Pills */}
+            <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 text-xs">
+              {(
+                [
+                  { id: 'all', label: `Все (${students.length})` },
+                  { id: 'online', label: `Онлайн (${students.filter((s) => s.isOnline).length})` },
+                  { id: 'finished', label: `Сдали (${finishedCount})` },
+                  {
+                    id: 'suspicious',
+                    label: `Нарушения (${students.filter((s) => (s.securityEvents?.totalSuspicious || 0) > 0).length})`,
+                  },
+                ] as const
+              ).map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setFilterStatus(chip.id)}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                    filterStatus === chip.id
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {students.length === 0 ? (
-          <div className="py-16 text-center text-gray-500 text-sm space-y-2">
-            <Users className="w-10 h-10 mx-auto text-gray-300" />
-            <p className="font-semibold text-gray-700">{t.dashEmptyTitle}</p>
-            <p className="text-xs text-gray-400">
-              {t.dashEmptyHint} <strong className="text-[#25718f] font-mono text-base">{game.code}</strong>
-            </p>
+        {/* Empty State or Table */}
+        {filteredStudents.length === 0 ? (
+          <div className="py-20 text-center text-slate-400 text-sm space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto text-slate-400">
+              <Users className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-bold text-white text-base">
+                {students.length === 0 ? t.dashEmptyTitle : 'Нет кандидатов по заданному фильтру'}
+              </p>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                {students.length === 0 ? (
+                  <>
+                    {t.dashEmptyHint}{' '}
+                    <strong className="text-cyan-400 font-mono text-base block mt-1 tracking-widest">{game.code}</strong>
+                  </>
+                ) : (
+                  'Попробуйте изменить поисковый запрос или фильтр статуса'
+                )}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
+              <thead className="bg-slate-800/90 text-slate-300 text-xs font-bold uppercase tracking-wider border-b border-slate-700/80">
                 <tr>
                   <th
                     onClick={() => toggleSort('id')}
-                    className="py-3 px-4 cursor-pointer hover:text-gray-900"
+                    className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span>{t.dashThId}</span>
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="w-3 h-3 text-cyan-400" />
                     </div>
                   </th>
                   <th
                     onClick={() => toggleSort('name')}
-                    className="py-3 px-4 cursor-pointer hover:text-gray-900"
+                    className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span>{t.dashThStudent}</span>
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="w-3 h-3 text-cyan-400" />
                     </div>
                   </th>
-                  <th className="py-3 px-4">{t.dashThVariant}</th>
-                  <th className="py-3 px-4">{t.dashThStatus}</th>
+                  <th className="py-3.5 px-4">{t.dashThVariant}</th>
+                  <th className="py-3.5 px-4">{t.dashThStatus}</th>
                   <th
                     onClick={() => toggleSort(isFinished ? 'score' : 'progress')}
-                    className="py-3 px-4 cursor-pointer hover:text-gray-900"
+                    className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span>{isFinished ? t.dashThScore : t.dashThProgress}</span>
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="w-3 h-3 text-cyan-400" />
                     </div>
                   </th>
                   {isFinished && (
                     <th
                       onClick={() => toggleSort('grade')}
-                      className="py-3 px-4 cursor-pointer hover:text-gray-900"
+                      className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <span>{t.dashThGrade}</span>
-                        <ArrowUpDown className="w-3 h-3" />
+                        <ArrowUpDown className="w-3 h-3 text-cyan-400" />
                       </div>
                     </th>
                   )}
                   <th
                     onClick={() => toggleSort('suspicious')}
-                    className="py-3 px-4 cursor-pointer hover:text-gray-900"
+                    className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span>{t.dashThSecurity}</span>
-                      <ArrowUpDown className="w-3 h-3" />
+                      <ArrowUpDown className="w-3 h-3 text-cyan-400" />
                     </div>
                   </th>
-                  <th className="py-3 px-4 text-center">{t.dashThActions}</th>
+                  <th className="py-3.5 px-4 text-center">{t.dashThActions}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-medium">
-                {sortedStudents.map((st) => {
+
+              <tbody className="divide-y divide-slate-800 font-medium">
+                {filteredStudents.map((st) => {
                   const susp = st.securityEvents?.totalSuspicious || 0;
                   const isOnline = st.isOnline;
                   const rep = st.scoreReport;
+                  const initials = `${st.lastName?.charAt(0) || ''}${st.firstName?.charAt(0) || ''}`.toUpperCase();
 
                   return (
                     <tr
                       key={st.studentId}
-                      className="hover:bg-gray-50/70 transition-colors"
+                      className="hover:bg-slate-800/50 transition-colors group"
                     >
                       {/* ID */}
-                      <td className="py-3 px-4 font-mono font-bold text-[#25718f]">
+                      <td className="py-3.5 px-4 font-mono font-bold text-cyan-400">
                         #{String(st.studentId).padStart(2, '0')}
                       </td>
 
-                      {/* Name */}
-                      <td className="py-3 px-4 font-bold text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full ${
-                              isOnline ? 'bg-emerald-500' : 'bg-gray-300'
-                            }`}
-                            title={isOnline ? 'Onlayn' : 'Oflayn'}
-                          />
-                          <span>
-                            {st.lastName} {st.firstName}
-                          </span>
+                      {/* Name with initials Avatar and Online status */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center font-bold text-xs text-white shadow-sm">
+                              {initials || 'К'}
+                            </div>
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full absolute -bottom-0.5 -right-0.5 border-2 border-slate-900 ${
+                                isOnline ? 'bg-emerald-400' : 'bg-slate-500'
+                              }`}
+                              title={isOnline ? 'В сети' : 'Офлайн'}
+                            />
+                          </div>
+
+                          <div>
+                            <span className="font-bold text-white text-sm block">
+                              {st.lastName} {st.firstName}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {isOnline ? 'Подключен к тесту' : 'Связь потеряна'}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
                       {/* Variant */}
-                      <td className="py-3 px-4 font-mono text-gray-700">
-                        <span className="px-2 py-0.5 rounded bg-gray-100 border border-gray-200 text-xs">
-                          Variant №{String(st.formId).padStart(2, '0')}
+                      <td className="py-3.5 px-4 font-mono">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-300 font-semibold">
+                          Вариант №{String(st.formId).padStart(2, '0')}
                         </span>
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <span
-                          className={`inline-block text-xs px-2.5 py-0.5 rounded font-semibold ${
+                          className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider font-mono border ${
                             st.status === 'DISQUALIFIED'
-                              ? 'bg-rose-100 text-rose-800 border border-rose-300 font-bold'
+                              ? 'bg-rose-950/80 border-rose-600/80 text-rose-300'
                               : st.status === 'FINISHED'
-                              ? 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-emerald-950/80 border-emerald-600/80 text-emerald-300'
                               : isOnline
-                              ? 'bg-cyan-100 text-[#25718f]'
-                              : 'bg-gray-100 text-gray-500'
+                              ? 'bg-cyan-950/80 border-cyan-500/80 text-cyan-300'
+                              : 'bg-slate-800 border-slate-700 text-slate-400'
                           }`}
                         >
+                          {st.status === 'DISQUALIFIED' && <UserX className="w-3 h-3 text-rose-400" />}
+                          {st.status === 'FINISHED' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
                           {st.status === 'DISQUALIFIED'
                             ? t.dashDisqualifiedBadge
                             : st.status === 'FINISHED'
@@ -860,19 +1050,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       </td>
 
                       {/* Progress / Score */}
-                      <td className="py-3 px-4 font-mono font-bold">
+                      <td className="py-3.5 px-4 font-mono font-bold">
                         {isFinished && rep ? (
                           <div className="flex items-baseline gap-1.5">
-                            <span className="text-gray-900 text-base">{rep.scorePoints}</span>
-                            <span className="text-xs text-gray-400">/ 20</span>
-                            <span className="text-xs text-[#25718f] font-normal">({rep.percentage}%)</span>
+                            <span className="text-white text-base">{rep.scorePoints}</span>
+                            <span className="text-xs text-slate-400">/ 20</span>
+                            <span className="text-xs text-cyan-400 font-semibold font-mono">({rep.percentage}%)</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-800">{st.answeredCount} / 20</span>
-                            <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-xs text-slate-300">
+                              <span>{st.answeredCount} / 20</span>
+                              <span className="text-slate-400 font-mono">
+                                {Math.round((st.answeredCount / 20) * 100)}%
+                              </span>
+                            </div>
+                            <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#25718f] rounded-full transition-all duration-300"
+                                className="h-full bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full transition-all duration-300"
                                 style={{ width: `${Math.round((st.answeredCount / 20) * 100)}%` }}
                               />
                             </div>
@@ -882,17 +1077,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                       {/* Grade */}
                       {isFinished && (
-                        <td className="py-3 px-4 font-mono font-extrabold text-base">
+                        <td className="py-3.5 px-4 font-mono font-black text-base">
                           {rep ? (
                             <span
-                              className={`px-2.5 py-0.5 rounded inline-block border ${
+                              className={`px-3 py-1 rounded-xl inline-block border font-mono shadow-sm ${
                                 rep.grade === 5
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60'
                                   : rep.grade === 4
-                                  ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                  ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
                                   : rep.grade === 3
-                                  ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                  : 'bg-rose-100 text-rose-800 border-rose-300'
+                                  ? 'bg-amber-950/80 text-amber-300 border-amber-500/60'
+                                  : 'bg-rose-950/80 text-rose-300 border-rose-500/60'
                               }`}
                             >
                               {rep.grade}
@@ -904,41 +1099,41 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       )}
 
                       {/* Suspicious Events */}
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         {susp > 0 ? (
                           <span
-                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 font-mono font-bold"
-                            title={`Hodisalar: ${susp}`}
+                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-700 font-mono font-bold"
+                            title={`Нарушения: ${susp}`}
                           >
-                            <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                            <span>{susp} {t.dashSecurityIncident}</span>
+                            <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                            <span>{susp} инцидент(ов)</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded text-emerald-700 bg-emerald-50 border border-emerald-200">
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>{t.dashSecurityClean}</span>
+                          <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 font-mono">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Чисто</span>
                           </span>
                         )}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center">
                         {st.status === 'DISQUALIFIED' ? (
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-950/40 text-rose-300 border border-rose-800/60 font-mono"
                             title={`${st.disqualifiedBy === 'PROCTOR' ? t.studentDisqualifiedProctorName : t.studentDisqualifiedTeacherName}: ${st.disqualificationReason || ''}`}
                           >
-                            <UserX className="w-3 h-3 text-rose-600" />
-                            <span>{t.dashDisqualifiedBadge}</span>
+                            <UserX className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Исключен</span>
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => openDisqualifyModal(st)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-300 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-700/60 rounded-xl transition-all active:scale-95 shadow-sm"
                             title={t.dashDisqualifyBtn}
                           >
-                            <UserX className="w-3.5 h-3.5" />
+                            <UserX className="w-3.5 h-3.5 text-rose-400" />
                             <span>{t.dashDisqualifyBtn}</span>
                           </button>
                         )}
@@ -950,7 +1145,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </table>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 4. MODALS */}
+      {/* ========================================================= */}
 
       {/* Manual Finish Modal */}
       <Modal
@@ -962,7 +1161,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         cancelText={t.dashFinishModalCancel}
         onConfirm={handleFinishGame}
       >
-        <p className="text-sm leading-relaxed text-gray-700">
+        <p className="text-sm leading-relaxed text-slate-300">
           {t.dashFinishModalText}
         </p>
       </Modal>
@@ -974,43 +1173,45 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         title={t.dashSessionsModalTitle}
         cancelText={t.dashFinishModalCancel}
       >
-        <div className="space-y-3">
-          <p className="text-xs text-gray-500 font-mono">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-400 font-mono">
             {t.dashSessionsModalSub}
           </p>
 
           {loadingGames ? (
             <div className="py-8 flex justify-center items-center">
-              <div className="w-6 h-6 border-2 border-[#25718f] border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : recentGames.length === 0 ? (
-            <div className="py-6 text-center text-xs text-gray-500 font-mono">
+            <div className="py-6 text-center text-xs text-slate-400 font-mono">
               {t.dashSessionsNoGames}
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto space-y-2 pr-1 divide-y divide-gray-100">
+            <div className="max-h-96 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-800">
               {recentGames.map((rg) => {
                 const isCurrent = rg.id === gameId;
                 const dateStr = new Date(rg.created_at).toLocaleString();
                 return (
                   <div
                     key={rg.id}
-                    className={`pt-2.5 pb-2.5 px-3 rounded flex items-center justify-between gap-3 transition-colors ${
-                      isCurrent ? 'bg-cyan-50 border border-cyan-200' : 'hover:bg-gray-50 border border-gray-100'
+                    className={`pt-3 pb-3 px-3.5 rounded-xl flex items-center justify-between gap-3 transition-colors ${
+                      isCurrent
+                        ? 'bg-cyan-950/60 border border-cyan-600/60'
+                        : 'hover:bg-slate-800/80 border border-slate-800'
                     }`}
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-base text-[#25718f]">
+                        <span className="font-mono font-black text-base text-cyan-400">
                           PIN: {rg.code}
                         </span>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                          className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider font-mono ${
                             rg.status === 'WAITING'
-                              ? 'bg-amber-100 text-amber-800'
+                              ? 'bg-amber-950/80 text-amber-300'
                               : rg.status === 'IN_PROGRESS'
-                              ? 'bg-cyan-100 text-[#25718f]'
-                              : 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-cyan-950/80 text-cyan-300'
+                              : 'bg-emerald-950/80 text-emerald-300'
                           }`}
                         >
                           {rg.status === 'WAITING'
@@ -1020,25 +1221,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             : t.dashStatusFinished}
                         </span>
                         {isCurrent && (
-                          <span className="text-[10px] bg-[#25718f] text-white font-bold px-1.5 py-0.5 rounded uppercase">
+                          <span className="text-[10px] bg-cyan-600 text-slate-950 font-black px-1.5 py-0.5 rounded uppercase font-mono">
                             {t.dashSessionsActiveBadge}
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-gray-500 font-mono">
+                      <div className="text-[11px] text-slate-400 font-mono">
                         {dateStr} • {rg.student_count} {t.dashSessionsStudentsCount}
                       </div>
                     </div>
 
                     <div>
                       {isCurrent ? (
-                        <span className="text-xs font-bold text-[#25718f] font-mono px-3 py-1.5 bg-white rounded border border-cyan-200 inline-block">
-                          ✓ {t.dashSessionsActiveBadge}
+                        <span className="text-xs font-bold text-cyan-400 font-mono px-3 py-1.5 bg-slate-900 rounded-lg border border-cyan-600/60 inline-block">
+                          ✓ Активна
                         </span>
                       ) : (
                         <button
                           onClick={() => handleSelectGame(rg.id)}
-                          className="px-3 py-1.5 rounded bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold text-xs transition-colors"
+                          className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs transition-colors"
                         >
                           {t.dashSessionsOpenBtn}
                         </button>
@@ -1064,7 +1265,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           await handleCreateGame();
         }}
       >
-        <p className="text-sm leading-relaxed text-gray-700">
+        <p className="text-sm leading-relaxed text-slate-300">
           {t.dashNewExamConfirmText}
         </p>
       </Modal>
@@ -1076,27 +1277,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         onClose={() => setShowProctorPreviewModal(false)}
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-slate-300 leading-relaxed">
             {t.dashProctorPreviewModalText}
           </p>
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 space-y-1">
-            <div className="font-bold flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-amber-700" />
+          <div className="p-3 bg-amber-950/60 border border-amber-600/40 rounded-xl text-xs text-amber-200 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-amber-300">
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
               <span>{t.proctorBannerTitle}</span>
             </div>
             <div>• {t.proctorBannerSub}</div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-700 block">
+            <label className="text-xs font-bold text-slate-200 block">
               {t.editorSelectVariant} (1–50)
             </label>
             <select
               value={previewVariantNumber}
               onChange={(e) => setPreviewVariantNumber(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-[#25718f] focus:outline-none"
+              className="w-full px-3 py-2 border border-slate-700 bg-slate-800 rounded-xl font-mono text-sm text-white focus:ring-2 focus:ring-cyan-400 focus:outline-none"
             >
               {Array.from({ length: 50 }, (_, i) => i + 1).map((num) => (
-                <option key={num} value={num}>
+                <option key={num} value={num} className="bg-slate-900 text-white">
                   {num}-variant (20 ta savol / 20 вопросов)
                 </option>
               ))}
@@ -1105,7 +1306,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={() => setShowProctorPreviewModal(false)}
-              className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs transition-colors"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
             >
               {t.dashFinishModalCancel}
             </button>
@@ -1114,7 +1315,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 setShowProctorPreviewModal(false);
                 onStartProctorPreview?.(previewVariantNumber);
               }}
-              className="px-4 py-2 rounded bg-[#00a65a] hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>{t.dashProctorPreviewStartBtn}</span>
@@ -1130,24 +1331,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           onClose={() => !disqualifying && setDisqualifyTarget(null)}
           title={t.disqualifyModalTitle}
         >
-          <div className="space-y-4 text-sm text-gray-700">
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">
+          <div className="space-y-4 text-sm text-slate-200">
+            <div className="p-3.5 bg-slate-800/90 rounded-xl border border-slate-700">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-mono">
                 {t.disqualifyStudentLabel}
               </span>
-              <div className="text-base font-bold text-gray-900 mt-0.5">
+              <div className="text-base font-bold text-white mt-0.5">
                 {disqualifyTarget.lastName} {disqualifyTarget.firstName} (№{disqualifyTarget.studentId})
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                 {t.disqualifyAuthorityLabel}
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
-                  disqualifyBy === 'PROCTOR' ? 'bg-[#25718f]/10 border-[#25718f] text-[#25718f]' : 'bg-white border-gray-200 hover:bg-gray-50'
-                }`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <label
+                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    disqualifyBy === 'PROCTOR'
+                      ? 'bg-cyan-950/60 border-cyan-500 text-white'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="disqualifyBy"
@@ -1157,15 +1362,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   />
                   <div>
                     <div className="font-bold text-xs">{t.disqualifyByProctor}</div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
+                    <div className="text-[11px] text-slate-400 mt-0.5">
                       AI / автопрокторинг
                     </div>
                   </div>
                 </label>
 
-                <label className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
-                  disqualifyBy === 'TEACHER' ? 'bg-[#25718f]/10 border-[#25718f] text-[#25718f]' : 'bg-white border-gray-200 hover:bg-gray-50'
-                }`}>
+                <label
+                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    disqualifyBy === 'TEACHER'
+                      ? 'bg-cyan-950/60 border-cyan-500 text-white'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="disqualifyBy"
@@ -1175,7 +1384,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   />
                   <div>
                     <div className="font-bold text-xs">{t.disqualifyByTeacher}</div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
+                    <div className="text-[11px] text-slate-400 mt-0.5">
                       Ручное решение экзаменатора
                     </div>
                   </div>
@@ -1185,7 +1394,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
             {disqualifyBy === 'PROCTOR' ? (
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
                   {t.disqualifyReasonLabel}
                 </label>
                 <div className="space-y-1.5">
@@ -1198,10 +1407,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   ].map((reasonText) => (
                     <label
                       key={reasonText}
-                      className={`flex items-center gap-2 p-2 rounded border text-xs cursor-pointer transition-colors ${
+                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
                         disqualifyProctorReason === reasonText
-                          ? 'border-[#25718f] bg-[#25718f]/5 font-semibold text-gray-900'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                          ? 'border-cyan-500 bg-cyan-950/40 font-bold text-white'
+                          : 'border-slate-700 hover:bg-slate-800 text-slate-300'
                       }`}
                     >
                       <input
@@ -1217,7 +1426,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
             ) : (
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
                   {t.disqualifyReasonLabel}
                 </label>
                 <textarea
@@ -1225,22 +1434,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   value={disqualifyCustomReason}
                   onChange={(e) => setDisqualifyCustomReason(e.target.value)}
                   placeholder={t.disqualifyCustomReasonPlaceholder}
-                  className="w-full p-2.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-[#25718f] focus:border-[#25718f]"
+                  className="w-full p-3 text-xs border border-slate-700 rounded-xl bg-slate-800 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
                 />
               </div>
             )}
 
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <div className="p-3 bg-rose-950/60 border border-rose-800/80 rounded-xl text-rose-300 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <span>{t.disqualifyWarning}</span>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 disabled={disqualifying}
                 onClick={() => setDisqualifyTarget(null)}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl transition-colors"
               >
                 {t.dashFinishModalCancel}
               </button>
@@ -1248,7 +1457,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 type="button"
                 disabled={disqualifying || (disqualifyBy === 'TEACHER' && !disqualifyCustomReason.trim())}
                 onClick={handleConfirmDisqualify}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-md shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-black text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-900/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
                 <UserX className="w-3.5 h-3.5" />
                 <span>{disqualifying ? '...' : t.disqualifyConfirmBtn}</span>
@@ -1258,24 +1467,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </Modal>
       )}
 
-      {/* ==================================================== */}
-      {/* Slide-out Side Drawer Navigation */}
-      {/* ==================================================== */}
+      {/* ========================================================= */}
+      {/* 5. SLIDE-OUT SIDE DRAWER NAVIGATION */}
+      {/* ========================================================= */}
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden animate-fade-in">
           {/* Dark Glassmorphic Backdrop */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity"
             onClick={() => setIsDrawerOpen(false)}
           />
 
           {/* Drawer Panel */}
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-sm sm:max-w-md bg-[#182124] text-white shadow-2xl flex flex-col border-l border-cyan-900/50">
+            <div className="w-screen max-w-sm sm:max-w-md bg-[#0c121e] text-white shadow-2xl flex flex-col border-l border-slate-800">
               {/* Drawer Top Header */}
-              <div className="p-5 border-b border-gray-800 flex items-center justify-between bg-[#141b1e]">
+              <div className="p-5 border-b border-slate-800/90 flex items-center justify-between bg-slate-900/60">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#25718f] to-cyan-400 flex items-center justify-center font-black text-black text-base shadow-md">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-400 via-teal-400 to-[#25718f] flex items-center justify-center font-black text-slate-950 text-base shadow-md">
                     {(api.getTeacherInfo()?.fullName || 'П').charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -1283,11 +1492,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       {api.getTeacherInfo()?.fullName || 'Проверяющий'}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-bold">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-950 border border-cyan-600/40 text-cyan-300 font-bold">
                         {api.getTeacherInfo()?.role || 'ЭКЗАМЕНАТОР'}
                       </span>
                       {api.getTeacherInfo()?.username && (
-                        <span className="text-[11px] text-gray-400 font-mono">
+                        <span className="text-[11px] text-slate-400 font-mono">
                           @{api.getTeacherInfo()?.username}
                         </span>
                       )}
@@ -1297,7 +1506,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                 <button
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1306,8 +1515,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               {/* Drawer Body */}
               <div className="flex-1 overflow-y-auto p-5 space-y-5">
                 {/* HERO ACTION: CREATE NEW TEST BUTTON */}
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400 font-mono">
+                <div className="space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 font-mono">
                     Быстрое создание:
                   </span>
                   <button
@@ -1315,17 +1524,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       setShowCreateTestModal(true);
                     }}
-                    className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-[#25718f] hover:from-cyan-400 hover:to-teal-300 text-black font-extrabold shadow-xl flex items-center gap-3.5 transition-all transform hover:scale-[1.02] active:scale-[0.98] group"
+                    className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black shadow-xl flex items-center gap-3.5 transition-all transform hover:scale-[1.02] active:scale-[0.98] group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform">
-                      <Sparkles className="w-6 h-6 text-black" />
+                    <div className="w-10 h-10 rounded-xl bg-slate-950/20 flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform">
+                      <Sparkles className="w-6 h-6 text-slate-950" />
                     </div>
                     <div className="text-left flex-1">
                       <div className="font-black text-sm tracking-wide">
                         ✨ Создать новый тест
                       </div>
-                      <div className="text-[11px] font-semibold text-black/80 mt-0.5">
-                        Время, варианты и вопросы с формулами
+                      <div className="text-[11px] font-bold text-slate-900/80 mt-0.5">
+                        Полноэкранная студия с вариантами и формулами Desmos
                       </div>
                     </div>
                   </button>
@@ -1333,7 +1542,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                 {/* Navigation Items */}
                 <div className="space-y-1.5 pt-2">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 font-mono">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 font-mono">
                     Разделы и функции:
                   </span>
 
@@ -1344,14 +1553,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         onOpenCustomTests();
                       }}
-                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                      className="w-full p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-purple-900/40 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                      <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-600/40 flex items-center justify-center text-purple-300 group-hover:scale-105 transition-transform">
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
                         <div className="text-white font-bold">{t.dashMyTestsBtn}</div>
-                        <div className="text-[11px] text-gray-400">Список ваших авторских тестов</div>
+                        <div className="text-[11px] text-slate-400">Список ваших авторских тестов</div>
                       </div>
                     </button>
                   )}
@@ -1362,14 +1571,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       setShowNewExamModal(true);
                     }}
-                    className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                    className="w-full p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-900/40 border border-emerald-500/40 flex items-center justify-center text-emerald-300">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-600/40 flex items-center justify-center text-emerald-300 group-hover:scale-105 transition-transform">
                       <PlusCircle className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="text-white font-bold">{t.dashNewExamBtn}</div>
-                      <div className="text-[11px] text-gray-400">Создать новую комнату для экзамена</div>
+                      <div className="text-[11px] text-slate-400">Создать новую комнату для экзамена</div>
                     </div>
                   </button>
 
@@ -1380,14 +1589,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         onOpenImport();
                       }}
-                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                      className="w-full p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-cyan-900/40 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-600/40 flex items-center justify-center text-cyan-300 group-hover:scale-105 transition-transform">
                         <FileEdit className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
                         <div className="text-white font-bold">{t.dashEditQuestionsBtn}</div>
-                        <div className="text-[11px] text-gray-400">Банк заданий и эталоны ответов</div>
+                        <div className="text-[11px] text-slate-400">Банк заданий и эталоны ответов</div>
                       </div>
                     </button>
                   )}
@@ -1399,14 +1608,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         setIsDrawerOpen(false);
                         setShowProctorPreviewModal(true);
                       }}
-                      className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                      className="w-full p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                      <div className="w-9 h-9 rounded-xl bg-amber-950/80 border border-amber-600/40 flex items-center justify-center text-amber-300 group-hover:scale-105 transition-transform">
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
                         <div className="text-white font-bold">{t.dashProctorPreviewBtn}</div>
-                        <div className="text-[11px] text-gray-400">{t.dashProctorPreviewDesc}</div>
+                        <div className="text-[11px] text-slate-400">{t.dashProctorPreviewDesc}</div>
                       </div>
                     </button>
                   )}
@@ -1417,37 +1626,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       setIsDrawerOpen(false);
                       handleOpenSessionsModal();
                     }}
-                    className="w-full p-3 rounded-xl bg-[#243035] hover:bg-[#2b3a40] border border-gray-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm"
+                    className="w-full p-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-white flex items-center gap-3 transition-colors text-xs font-semibold text-left shadow-sm group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-blue-900/40 border border-blue-500/40 flex items-center justify-center text-blue-300">
+                    <div className="w-9 h-9 rounded-xl bg-blue-950/80 border border-blue-600/40 flex items-center justify-center text-blue-300 group-hover:scale-105 transition-transform">
                       <Layers className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="text-white font-bold">{t.dashSessionsBtn}</div>
-                      <div className="text-[11px] text-gray-400">Журнал прошедших сессий</div>
+                      <div className="text-[11px] text-slate-400">Журнал прошедших сессий</div>
                     </div>
                   </button>
                 </div>
 
-                {/* Language Selector Inside Drawer */}
-                <div className="space-y-1.5 pt-2 border-t border-gray-800">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 font-mono">
+                {/* Language Selector */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 font-mono">
                     Язык интерфейса:
                   </span>
-                  <div className="bg-[#243035] p-2 rounded-xl border border-gray-700/60">
+                  <div className="bg-slate-800/80 p-2 rounded-2xl border border-slate-700/60">
                     <LanguageSelector />
                   </div>
                 </div>
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-4 border-t border-gray-800 bg-[#141b1e]">
+              <div className="p-4 border-t border-slate-800/90 bg-slate-900/80">
                 <button
                   onClick={() => {
                     setIsDrawerOpen(false);
                     handleLogout();
                   }}
-                  className="w-full p-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 flex items-center justify-center gap-2 transition-colors text-xs font-bold"
+                  className="w-full p-3.5 rounded-2xl bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/50 text-rose-300 flex items-center justify-center gap-2 transition-all active:scale-95 text-xs font-bold"
                 >
                   <LogOut className="w-4 h-4 text-rose-400" />
                   <span>{t.dashLogout}</span>
@@ -1458,7 +1667,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
       )}
 
-      {/* Custom Test Editor Modal with Variants Support */}
+      {/* Fullscreen Test Editor Modal with Variants & Desmos Math Support */}
       <CustomTestEditorModal
         isOpen={showCreateTestModal}
         onClose={() => setShowCreateTestModal(false)}
