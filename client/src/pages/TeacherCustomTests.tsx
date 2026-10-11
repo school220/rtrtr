@@ -100,10 +100,12 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 p-3 sm:p-6 pt-safe pb-safe select-none max-w-7xl mx-auto space-y-5 font-sans relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#090d16] text-slate-100 font-sans select-none relative overflow-x-hidden">
       {/* Background Decorative Ambient Gradients */}
       <div className="fixed top-[-15%] left-[20%] w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed top-[30%] right-[10%] w-[450px] h-[450px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      <div className="max-w-7xl mx-auto p-3 sm:p-6 pt-safe pb-safe space-y-5">
 
       {/* Top Header Card */}
       <header className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4">
@@ -270,6 +272,7 @@ export const TeacherCustomTests: React.FC<TeacherCustomTestsProps> = ({
           ))}
         </div>
       )}
+      </div>
 
       {/* FULLSCREEN STUDIO MODAL */}
       <CustomTestEditorModal
