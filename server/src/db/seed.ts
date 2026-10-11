@@ -602,16 +602,20 @@ export async function seedDatabase(force: boolean = false): Promise<void> {
   await runMigrations();
 
   await withTransaction(async (db) => {
+    // Ensure default root teacher exists (proctor_admin)
+    const { TeacherService } = await import('../services/teacher.service.js');
+    const rootTeacherId = await TeacherService.ensureRootTeacher(db);
+
     // Delete any previous questions beyond 20
     await db.query('DELETE FROM form_questions WHERE question_number > 20');
 
     // Check if forms already seeded with exactly 20 questions for Grade 4 fractions
     if (!force) {
-      const q20Count = await db.query('SELECT COUNT(*) as count FROM form_questions WHERE question_number = 20');
+      const q20Count = await db.query('SELECT COUNT(*) as count FROM form_questions WHERE teacher_id = $1 AND question_number = 20', [rootTeacherId]);
       const count = parseInt(q20Count.rows[0]?.count || '0', 10);
-      const totalCount = await db.query('SELECT COUNT(*) as count FROM form_questions');
+      const totalCount = await db.query('SELECT COUNT(*) as count FROM form_questions WHERE teacher_id = $1', [rootTeacherId]);
       const total = parseInt(totalCount.rows[0]?.count || '0', 10);
-      const titleCheck = await db.query("SELECT COUNT(*) as count FROM forms WHERE title LIKE '%Дроби%'");
+      const titleCheck = await db.query("SELECT COUNT(*) as count FROM forms WHERE teacher_id = $1 AND title LIKE '%Дроби%'", [rootTeacherId]);
       const titleCount = parseInt(titleCheck.rows[0]?.count || '0', 10);
 
       if (count >= 50 && total === 1000 && titleCount >= 50) {
@@ -625,16 +629,16 @@ export async function seedDatabase(force: boolean = false): Promise<void> {
     for (let formId = 1; formId <= 50; formId++) {
       // 1. Insert form
       await db.query(
-        `INSERT INTO forms (form_id, title) VALUES ($1, $2)
-         ON CONFLICT (form_id) DO UPDATE SET title = EXCLUDED.title`,
-        [formId, `Бланк №${formId} (4 класс • Дроби)`]
+        `INSERT INTO forms (teacher_id, form_id, title) VALUES ($1, $2, $3)
+         ON CONFLICT (teacher_id, form_id) DO UPDATE SET title = EXCLUDED.title`,
+        [rootTeacherId, formId, `Бланк №${formId} (4 класс • Дроби)`]
       );
 
       const questions = generateFormQuestions(formId);
 
       for (const q of questions) {
         // Unique code per question in variant
-        const qCode = `FORM_${formId}_Q${q.questionNumber}`;
+        const qCode = `T${rootTeacherId}_FORM_${formId}_Q${q.questionNumber}`;
 
         const qRes = await db.query(
           `INSERT INTO questions (code, text, type, points, correct_answer, explanation, metadata)
@@ -662,10 +666,10 @@ export async function seedDatabase(force: boolean = false): Promise<void> {
 
         // Insert into form_questions
         await db.query(
-          `INSERT INTO form_questions (form_id, question_id, question_number)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (form_id, question_number) DO UPDATE SET question_id = EXCLUDED.question_id`,
-          [formId, questionDbId, q.questionNumber]
+          `INSERT INTO form_questions (teacher_id, form_id, question_id, question_number)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (teacher_id, form_id, question_number) DO UPDATE SET question_id = EXCLUDED.question_id`,
+          [rootTeacherId, formId, questionDbId, q.questionNumber]
         );
 
         // If multiple choice, insert or update 4 options safely

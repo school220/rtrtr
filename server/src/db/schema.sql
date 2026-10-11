@@ -2,7 +2,19 @@
 -- Classroom Testing System - Normalized PostgreSQL Schema
 -- ========================================================
 
--- Games (Active and historical testing sessions)
+-- Teachers / Examiners (Separate accounts for proctors)
+CREATE TABLE IF NOT EXISTS teachers (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(100) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'EXAMINER', -- 'COMMISSION_CHAIR', 'EXAMINER'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_teachers_username ON teachers(username);
+
+-- Games (Active and historical testing sessions per examiner)
 CREATE TABLE IF NOT EXISTS games (
   id VARCHAR(36) PRIMARY KEY,
   code VARCHAR(10) UNIQUE NOT NULL,
@@ -13,21 +25,25 @@ CREATE TABLE IF NOT EXISTS games (
   ends_at TIMESTAMPTZ,
   finished_at TIMESTAMPTZ,
   max_students INT NOT NULL DEFAULT 50,
+  teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_games_code ON games(code);
 CREATE INDEX IF NOT EXISTS idx_games_status ON games(status);
+CREATE INDEX IF NOT EXISTS idx_games_teacher_id ON games(teacher_id);
 
--- Forms (Each test variant has a fixed form_id from 1 to 50)
+-- Forms (Each test variant has a form_id 1..50 isolated per examiner)
 CREATE TABLE IF NOT EXISTS forms (
   id SERIAL PRIMARY KEY,
-  form_id INT NOT NULL UNIQUE,
+  teacher_id INT NOT NULL DEFAULT 1 REFERENCES teachers(id) ON DELETE CASCADE,
+  form_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_teacher_form UNIQUE (teacher_id, form_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_forms_form_id ON forms(form_id);
+CREATE INDEX IF NOT EXISTS idx_forms_teacher_form ON forms(teacher_id, form_id);
 
 -- Questions (Repository of test questions, supports thousands of items)
 CREATE TABLE IF NOT EXISTS questions (
@@ -56,23 +72,24 @@ CREATE TABLE IF NOT EXISTS answer_options (
 
 CREATE INDEX IF NOT EXISTS idx_answer_options_qid ON answer_options(question_id);
 
--- Form Questions (Mapping of exactly 30 questions to each of the 50 forms)
+-- Form Questions (Mapping of questions to each examiner's variant)
 CREATE TABLE IF NOT EXISTS form_questions (
   id SERIAL PRIMARY KEY,
-  form_id INT NOT NULL REFERENCES forms(form_id) ON DELETE CASCADE,
+  teacher_id INT NOT NULL DEFAULT 1 REFERENCES teachers(id) ON DELETE CASCADE,
+  form_id INT NOT NULL,
   question_id INT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
   question_number INT NOT NULL, -- 1..30
-  CONSTRAINT uq_form_question_number UNIQUE (form_id, question_number)
+  CONSTRAINT uq_teacher_form_question UNIQUE (teacher_id, form_id, question_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(form_id, question_number);
+CREATE INDEX IF NOT EXISTS idx_form_questions_lookup ON form_questions(teacher_id, form_id, question_number);
 
 -- Students (Student participants in a game room)
 CREATE TABLE IF NOT EXISTS students (
   id SERIAL PRIMARY KEY,
   game_id VARCHAR(36) NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   student_id INT NOT NULL, -- 1..50, allocated safely by server
-  form_id INT NOT NULL REFERENCES forms(form_id), -- exactly matches student_id
+  form_id INT NOT NULL, -- variant assigned to student
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   session_token VARCHAR(128) UNIQUE NOT NULL,

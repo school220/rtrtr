@@ -25,6 +25,24 @@ export async function runMigrations(): Promise<void> {
 
   const db = await getDb();
   await db.exec(sql);
+
+  // Incremental column migration for existing databases
+  try {
+    await db.query(`ALTER TABLE games ADD COLUMN IF NOT EXISTS teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1`);
+  } catch {
+    // ignore if column exists
+  }
+  try {
+    await db.query(`ALTER TABLE forms ADD COLUMN IF NOT EXISTS teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1`);
+  } catch {
+    // ignore if column exists
+  }
+  try {
+    await db.query(`ALTER TABLE form_questions ADD COLUMN IF NOT EXISTS teacher_id INT REFERENCES teachers(id) ON DELETE CASCADE DEFAULT 1`);
+  } catch {
+    // ignore if column exists
+  }
+
   console.log('✅ Database migrations applied successfully.');
 }
 

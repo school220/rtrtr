@@ -10,6 +10,7 @@ import { sanitizeName } from '../middleware/security.middleware.js';
 export interface CreateGameParams {
   title?: string;
   durationSeconds?: number;
+  teacherId?: number;
 }
 
 export interface JoinGameParams {
@@ -41,6 +42,7 @@ export class GameService {
     const gameId = uuidv4();
     const duration = params.durationSeconds || config.testDurationSeconds;
     const title = params.title || 'Классный тест';
+    const teacherId = params.teacherId || 1;
 
     // Generate unique game code
     let code = '';
@@ -54,9 +56,9 @@ export class GameService {
     }
 
     await db.query(
-      `INSERT INTO games (id, code, title, status, total_time_seconds, max_students, created_at)
-       VALUES ($1, $2, $3, 'WAITING', $4, $5, CURRENT_TIMESTAMP)`,
-      [gameId, code, title, duration, config.maxStudentsPerGame]
+      `INSERT INTO games (id, code, title, status, total_time_seconds, max_students, teacher_id, created_at)
+       VALUES ($1, $2, $3, 'WAITING', $4, $5, $6, CURRENT_TIMESTAMP)`,
+      [gameId, code, title, duration, config.maxStudentsPerGame, teacherId]
     );
 
     return {
@@ -66,6 +68,7 @@ export class GameService {
       status: 'WAITING',
       durationSeconds: duration,
       maxStudents: config.maxStudentsPerGame,
+      teacherId,
     };
   }
 
@@ -76,7 +79,7 @@ export class GameService {
     const db = await getDb();
     const cleanCode = code.trim().toUpperCase();
     const res = await db.query(
-      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, created_at
+      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, created_at
        FROM games WHERE code = $1`,
       [cleanCode]
     );
@@ -87,7 +90,7 @@ export class GameService {
   public static async getGameById(gameId: string) {
     const db = await getDb();
     const res = await db.query(
-      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, created_at
+      `SELECT id, code, title, status, total_time_seconds, started_at, ends_at, finished_at, max_students, teacher_id, created_at
        FROM games WHERE id = $1`,
       [gameId]
     );
@@ -232,7 +235,7 @@ export class GameService {
   public static async startGame(gameId: string) {
     return await withTransaction(async (db) => {
       const gameRes = await db.query(
-        `SELECT id, status, total_time_seconds FROM games WHERE id = $1 FOR UPDATE`,
+        `SELECT id, status, total_time_seconds, teacher_id FROM games WHERE id = $1 FOR UPDATE`,
         [gameId]
       );
       if (gameRes.rows.length === 0) {
@@ -274,9 +277,9 @@ export class GameService {
         }
       }
 
-      // Verify each assigned form has exactly 30 questions
+      // Verify each assigned form has exactly 20 questions
       for (const s of studentsRes.rows) {
-        const integrity = await QuestionService.verifyFormIntegrity(s.form_id, db);
+        const integrity = await QuestionService.verifyFormIntegrity(s.form_id, game.teacher_id || 1, db);
         if (!integrity.valid) {
           throw new Error(`Ошибка в бланке №${s.form_id}: ${integrity.errors.join('; ')}`);
         }
@@ -496,8 +499,8 @@ export class GameService {
       currentQuestionNumber = 20;
     }
 
-    // Load all question definitions for student
-    const questions = await QuestionService.getAllQuestionsForStudent(student.form_id);
+    // Load all question definitions for student (using the game's teacher_id)
+    const questions = await QuestionService.getAllQuestionsForStudent(student.form_id, game.teacher_id || 1);
     const currentQuestion = questions.find((q) => q.questionNumber === currentQuestionNumber) || null;
 
     // If game or student finished, return final score report
@@ -519,6 +522,7 @@ export class GameService {
       gameId: game.id,
       gameCode: game.code,
       gameStatus: game.status,
+      teacherId: game.teacher_id || 1,
       startedAt: game.started_at,
       endsAt: game.ends_at,
       totalTimeSeconds: game.total_time_seconds,

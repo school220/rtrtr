@@ -2,8 +2,35 @@ import { Request, Response, NextFunction } from 'express';
 import { config } from '../config.js';
 import { getDb } from '../db/index.js';
 
-// In-memory set of authenticated teacher/proctor session tokens
-export const activeTeacherTokens = new Set<string>();
+export interface TeacherSession {
+  teacherId: number;
+  username: string;
+  fullName: string;
+  role: string;
+}
+
+// In-memory registry of authenticated teacher/proctor session tokens
+export const activeTeacherSessions = new Map<string, TeacherSession>();
+
+// Set-compatible proxy for backwards compatibility
+export const activeTeacherTokens = {
+  has(token: string): boolean {
+    return activeTeacherSessions.has(token);
+  },
+  add(token: string): void {
+    if (!activeTeacherSessions.has(token)) {
+      activeTeacherSessions.set(token, {
+        teacherId: 1,
+        username: config.teacherAuth.username || 'proctor_admin',
+        fullName: 'Председатель комиссии',
+        role: 'COMMISSION_CHAIR',
+      });
+    }
+  },
+  delete(token: string): boolean {
+    return activeTeacherSessions.delete(token);
+  },
+};
 
 /**
  * Checks if a teacher token is valid
@@ -12,7 +39,7 @@ export function isValidTeacherToken(token?: string | null): boolean {
   if (!token) return false;
   const clean = token.startsWith('Bearer ') ? token.slice(7) : token;
   return (
-    activeTeacherTokens.has(clean) ||
+    activeTeacherSessions.has(clean) ||
     clean === config.sessionSecret ||
     clean === config.teacherAuth.password ||
     process.env.NODE_ENV === 'test'
@@ -20,7 +47,7 @@ export function isValidTeacherToken(token?: string | null): boolean {
 }
 
 /**
- * Middleware: Requires valid teacher authentication token
+ * Middleware: Requires valid teacher authentication token and binds req.teacher
  */
 export function requireTeacherAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader =
@@ -28,12 +55,30 @@ export function requireTeacherAuth(req: Request, res: Response, next: NextFuncti
     (req.headers['x-teacher-token'] as string) ||
     (req.query?.token as string);
 
-  if (isValidTeacherToken(authHeader)) {
+  const clean = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+  if (clean && activeTeacherSessions.has(clean)) {
+    (req as any).teacher = activeTeacherSessions.get(clean);
+    return next();
+  }
+
+  // Fallback for test suite or direct config secret
+  if (
+    clean === config.sessionSecret ||
+    clean === config.teacherAuth.password ||
+    process.env.NODE_ENV === 'test'
+  ) {
+    (req as any).teacher = {
+      teacherId: 1,
+      username: config.teacherAuth.username || 'proctor_admin',
+      fullName: 'Председатель комиссии',
+      role: 'COMMISSION_CHAIR',
+    };
     return next();
   }
 
   res.status(401).json({
-    error: 'Доступ запрещён: требуется авторизация председателя комиссии / учителя.',
+    error: 'Доступ запрещён: требуется авторизация проверяющего.',
   });
 }
 

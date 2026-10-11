@@ -31,13 +31,14 @@ export class AnswerService {
     return await withTransaction(async (db) => {
       // 1. Verify game status and timing
       const gameRes = await db.query(
-        `SELECT id, status, ends_at FROM games WHERE id = $1`,
+        `SELECT id, status, ends_at, teacher_id FROM games WHERE id = $1`,
         [gameId]
       );
       if (gameRes.rows.length === 0) {
         throw new Error('Игра не найдена.');
       }
       const game = gameRes.rows[0];
+      const teacherId = game.teacher_id || 1;
 
       if (game.status !== 'IN_PROGRESS') {
         throw new Error(`Тест не активен (текущий статус: ${game.status}).`);
@@ -71,8 +72,8 @@ export class AnswerService {
         `SELECT q.id, q.type, q.points, q.correct_answer, q.metadata
          FROM form_questions fq
          JOIN questions q ON fq.question_id = q.id
-         WHERE fq.form_id = $1 AND fq.question_number = $2`,
-        [student.form_id, questionNumber]
+         WHERE fq.teacher_id = $1 AND fq.form_id = $2 AND fq.question_number = $3`,
+        [teacherId, student.form_id, questionNumber]
       );
 
       if (qRes.rows.length === 0) {

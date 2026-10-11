@@ -114,19 +114,21 @@ importRouter.post('/form', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    const teacherId = (req as any).teacher?.teacherId || 1;
+
     await withTransaction(async (db) => {
       for (const formData of formsList) {
         // 1. Insert or update form
         const title = formData.title || `Бланк №${formData.form_id}`;
         await db.query(
-          `INSERT INTO forms (form_id, title) VALUES ($1, $2)
-           ON CONFLICT (form_id) DO UPDATE SET title = EXCLUDED.title`,
-          [formData.form_id, title]
+          `INSERT INTO forms (teacher_id, form_id, title) VALUES ($1, $2, $3)
+           ON CONFLICT (teacher_id, form_id) DO UPDATE SET title = EXCLUDED.title`,
+          [teacherId, formData.form_id, title]
         );
 
         // 2. Insert questions
         for (const q of formData.questions) {
-          const qCode = `IMPORT_FORM_${formData.form_id}_Q${q.number}`;
+          const qCode = `T${teacherId}_IMPORT_FORM_${formData.form_id}_Q${q.number}`;
           const qRes = await db.query(
             `INSERT INTO questions (code, text, type, points, correct_answer, explanation, metadata)
              VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -153,10 +155,10 @@ importRouter.post('/form', async (req: Request, res: Response): Promise<void> =>
 
           // Form question assignment
           await db.query(
-            `INSERT INTO form_questions (form_id, question_id, question_number)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (form_id, question_number) DO UPDATE SET question_id = EXCLUDED.question_id`,
-            [formData.form_id, qId, q.number]
+            `INSERT INTO form_questions (teacher_id, form_id, question_id, question_number)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (teacher_id, form_id, question_number) DO UPDATE SET question_id = EXCLUDED.question_id`,
+            [teacherId, formData.form_id, qId, q.number]
           );
 
           // Options for multiple choice
@@ -189,17 +191,20 @@ importRouter.post('/form', async (req: Request, res: Response): Promise<void> =>
 
 /**
  * GET /api/import/forms-status
- * Returns overview of all 50 forms and their integrity status
+ * Returns overview of all 50 forms and their integrity status for the authenticated teacher
  */
-importRouter.get('/forms-status', async (_req: Request, res: Response): Promise<void> => {
+importRouter.get('/forms-status', async (req: Request, res: Response): Promise<void> => {
   try {
+    const teacherId = (req as any).teacher?.teacherId || 1;
     const db = await getDb();
     const formsRes = await db.query(
       `SELECT f.form_id, f.title, COUNT(fq.id) as question_count
        FROM forms f
-       LEFT JOIN form_questions fq ON f.form_id = fq.form_id
+       LEFT JOIN form_questions fq ON f.form_id = fq.form_id AND fq.teacher_id = f.teacher_id
+       WHERE f.teacher_id = $1
        GROUP BY f.form_id, f.title
-       ORDER BY f.form_id ASC`
+       ORDER BY f.form_id ASC`,
+      [teacherId]
     );
 
     res.json({
@@ -218,10 +223,11 @@ importRouter.get('/forms-status', async (_req: Request, res: Response): Promise<
 
 /**
  * GET /api/import/form/:formId
- * Returns full question data, options, correct answers, and explanations for formId
+ * Returns full question data, options, correct answers, and explanations for formId of authenticated teacher
  */
 importRouter.get('/form/:formId', async (req: Request, res: Response): Promise<void> => {
   try {
+    const teacherId = (req as any).teacher?.teacherId || 1;
     const formId = parseInt(req.params.formId, 10);
     if (isNaN(formId) || formId < 1 || formId > 100) {
       res.status(400).json({ error: 'Неверный номер варианта' });
@@ -230,8 +236,8 @@ importRouter.get('/form/:formId', async (req: Request, res: Response): Promise<v
 
     const db = await getDb();
     const formRes = await db.query(
-      `SELECT form_id, title FROM forms WHERE form_id = $1`,
-      [formId]
+      `SELECT form_id, title FROM forms WHERE teacher_id = $1 AND form_id = $2`,
+      [teacherId, formId]
     );
 
     if (formRes.rows.length === 0) {
@@ -257,9 +263,9 @@ importRouter.get('/form/:formId', async (req: Request, res: Response): Promise<v
        FROM form_questions fq
        JOIN questions q ON fq.question_id = q.id
        LEFT JOIN answer_options ao ON q.id = ao.question_id
-       WHERE fq.form_id = $1
+       WHERE fq.teacher_id = $1 AND fq.form_id = $2
        ORDER BY fq.question_number ASC, ao.sort_order ASC`,
-      [formId]
+      [teacherId, formId]
     );
 
     const questionsMap = new Map<number, any>();
@@ -318,8 +324,16 @@ importRouter.put('/question/:questionId', async (req: Request, res: Response): P
       return;
     }
 
-    if (!correct_answer || typeof correct_answer !== 'string') {
-      res.status(400).json({ error: 'Правильный ответ обязателен' });
+    const teacherId = (req as any).teacher?.teacherId || 1;
+    const isChair = (req as any).teacher?.role === 'COMMISSION_CHAIR';
+
+    const db = await getDb();
+    const check = await db.query(
+      `SELECT 1 FROM form_questions WHERE teacher_id = $1 AND question_id = $2`,
+      [teacherId, questionId]
+    );
+    if (check.rows.length === 0 && !isChair) {
+      res.status(403).json({ error: 'Доступ запрещён: этот вопрос принадлежит другому проверяющему' });
       return;
     }
 

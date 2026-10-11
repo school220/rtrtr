@@ -16,7 +16,8 @@ export class QuestionService {
    */
   public static async getQuestionForStudent(
     formId: number,
-    questionNumber: number
+    questionNumber: number,
+    teacherId: number = 1
   ): Promise<StudentSafeQuestion | null> {
     const db = await getDb();
 
@@ -24,8 +25,8 @@ export class QuestionService {
       `SELECT q.id, q.text, q.type
        FROM form_questions fq
        JOIN questions q ON fq.question_id = q.id
-       WHERE fq.form_id = $1 AND fq.question_number = $2`,
-      [formId, questionNumber]
+       WHERE fq.teacher_id = $1 AND fq.form_id = $2 AND fq.question_number = $3`,
+      [teacherId, formId, questionNumber]
     );
 
     if (qRes.rows.length === 0) return null;
@@ -63,7 +64,8 @@ export class QuestionService {
    * Retrieves all questions for a student's form in a single batch query.
    */
   public static async getAllQuestionsForStudent(
-    formId: number
+    formId: number,
+    teacherId: number = 1
   ): Promise<StudentSafeQuestion[]> {
     const db = await getDb();
 
@@ -79,9 +81,9 @@ export class QuestionService {
        FROM form_questions fq
        JOIN questions q ON fq.question_id = q.id
        LEFT JOIN answer_options ao ON q.id = ao.question_id
-       WHERE fq.form_id = $1
+       WHERE fq.teacher_id = $1 AND fq.form_id = $2
        ORDER BY fq.question_number ASC, ao.sort_order ASC`,
-      [formId]
+      [teacherId, formId]
     );
 
     const questionsMap = new Map<number, StudentSafeQuestion>();
@@ -116,6 +118,7 @@ export class QuestionService {
    */
   public static async verifyFormIntegrity(
     formId: number,
+    teacherId: number = 1,
     dbClient?: any
   ): Promise<{ valid: boolean; errors: string[] }> {
     const db = dbClient || (await getDb());
@@ -125,9 +128,9 @@ export class QuestionService {
       `SELECT fq.question_number, q.id as question_id, q.type
        FROM form_questions fq
        JOIN questions q ON fq.question_id = q.id
-       WHERE fq.form_id = $1
+       WHERE fq.teacher_id = $1 AND fq.form_id = $2
        ORDER BY fq.question_number ASC`,
-      [formId]
+      [teacherId, formId]
     );
 
     if (fqRes.rows.length !== 20) {

@@ -6,9 +6,11 @@ import { GameService } from '../services/game.service.js';
 import { AnswerService } from '../services/answer.service.js';
 import { QuestionService } from '../services/question.service.js';
 import { EventService } from '../services/event.service.js';
+import { TeacherService } from '../services/teacher.service.js';
 import { getDb } from '../db/index.js';
 import {
   activeTeacherTokens,
+  activeTeacherSessions,
   requireTeacherAuth,
   requireStudentOrTeacherAuth,
   loginRateLimiter,
@@ -18,29 +20,64 @@ import {
 export function createApiRouter(io: Server): Router {
   const router = Router();
 
-  // 0. Teacher authentication endpoints (with anti-bruteforce rate limiting)
-  router.post('/teacher/login', loginRateLimiter, (req: Request, res: Response): void => {
+  // 0. Teacher registration endpoint (with anti-bruteforce rate limiting)
+  router.post('/teacher/register', loginRateLimiter, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { fullName, username, password } = req.body || {};
+      const teacher = await TeacherService.registerTeacher({ fullName, username, password });
+
+      const token = `proctor_tok_${uuidv4()}`;
+      activeTeacherSessions.set(token, {
+        teacherId: teacher.id,
+        username: teacher.username,
+        fullName: teacher.fullName,
+        role: teacher.role,
+      });
+
+      res.status(201).json({
+        success: true,
+        token,
+        teacherId: teacher.id,
+        username: teacher.username,
+        fullName: teacher.fullName,
+        role: teacher.role,
+        message: 'Регистрация проверяющего успешна',
+      });
+    } catch (err: any) {
+      const status = err.message.includes('уже зарегистрирован') ? 409 : 400;
+      res.status(status).json({ error: err.message || 'Ошибка регистрации проверяющего' });
+    }
+  });
+
+  // 0.1 Teacher login endpoint (with anti-bruteforce rate limiting)
+  router.post('/teacher/login', loginRateLimiter, async (req: Request, res: Response): Promise<void> => {
     const { username, password } = req.body || {};
     if (!username || !password) {
       res.status(400).json({ error: 'Необходимо указать логин и пароль' });
       return;
     }
 
-    const expectedUser = config.teacherAuth.username;
-    const expectedPass = config.teacherAuth.password;
+    const teacher = await TeacherService.loginTeacher({ username, password });
 
-    if (username === expectedUser && password === expectedPass) {
+    if (teacher) {
       const token = `proctor_tok_${uuidv4()}`;
-      activeTeacherTokens.add(token);
+      activeTeacherSessions.set(token, {
+        teacherId: teacher.id,
+        username: teacher.username,
+        fullName: teacher.fullName,
+        role: teacher.role,
+      });
       res.json({
         success: true,
         token,
-        username: expectedUser,
-        role: 'COMMISSION_CHAIR',
-        message: 'Авторизация председателя комиссии успешна',
+        teacherId: teacher.id,
+        username: teacher.username,
+        fullName: teacher.fullName,
+        role: teacher.role,
+        message: 'Авторизация проверяющего успешна',
       });
     } else {
-      res.status(401).json({ error: 'Неверный логин или пароль председателя комиссии' });
+      res.status(401).json({ error: 'Неверный логин или пароль проверяющего' });
     }
   });
 
@@ -48,8 +85,15 @@ export function createApiRouter(io: Server): Router {
     const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
-    if (token && activeTeacherTokens.has(token)) {
-      res.json({ valid: true, username: config.teacherAuth.username });
+    if (token && activeTeacherSessions.has(token)) {
+      const session = activeTeacherSessions.get(token)!;
+      res.json({
+        valid: true,
+        teacherId: session.teacherId,
+        username: session.username,
+        fullName: session.fullName,
+        role: session.role,
+      });
     } else {
       res.status(401).json({ valid: false, error: 'Сессия истекла или недействительна' });
     }
@@ -59,22 +103,15 @@ export function createApiRouter(io: Server): Router {
     const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     if (token) {
-      activeTeacherTokens.delete(token);
+      activeTeacherSessions.delete(token);
     }
     res.json({ success: true });
   });
 
   // Proctor Preview Mode: creates an active authentic test session for proctor/teacher
-  router.post('/teacher/preview-session', async (req: Request, res: Response): Promise<void> => {
+  router.post('/teacher/preview-session', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
-      const authHeader = (req.headers.authorization as string) || (req.headers['x-teacher-token'] as string);
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-
-      if (token && !activeTeacherTokens.has(token)) {
-        res.status(401).json({ error: 'Недействительный токен председателя комиссии' });
-        return;
-      }
-
+      const teacherId = (req as any).teacher?.teacherId || 1;
       const formId = Math.min(Math.max(parseInt(req.body?.formId || 1, 10), 1), 50);
       const db = await getDb();
       const gameId = uuidv4();
@@ -85,9 +122,9 @@ export function createApiRouter(io: Server): Router {
 
       // Create preview game in IN_PROGRESS state
       await db.query(
-        `INSERT INTO games (id, code, title, status, total_time_seconds, started_at, ends_at, max_students, created_at)
-         VALUES ($1, $2, $3, 'IN_PROGRESS', $4, $5, $6, 50, CURRENT_TIMESTAMP)`,
-        [gameId, code, `Проверка варианта №${formId} (Проктор)`, duration, now.toISOString(), endsAt.toISOString()]
+        `INSERT INTO games (id, code, title, status, total_time_seconds, started_at, ends_at, max_students, teacher_id, created_at)
+         VALUES ($1, $2, $3, 'IN_PROGRESS', $4, $5, $6, 50, $7, CURRENT_TIMESTAMP)`,
+        [gameId, code, `Проверка варианта №${formId} (Проктор)`, duration, now.toISOString(), endsAt.toISOString(), teacherId]
       );
 
       // Create proctor student participant
@@ -118,9 +155,10 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // List recent games for teacher dashboard (excluding private proctor preview rooms)
+  // List recent games for teacher dashboard (strictly isolated to current teacher)
   router.get('/games/recent', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
       const db = await getDb();
       const resGames = await db.query(
         `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
@@ -128,10 +166,11 @@ export function createApiRouter(io: Server): Router {
                 COUNT(s.id)::int as student_count
          FROM games g
          LEFT JOIN students s ON s.game_id = g.id
-         WHERE g.code NOT LIKE 'PRK%'
+         WHERE g.code NOT LIKE 'PRK%' AND g.teacher_id = $1
          GROUP BY g.id
          ORDER BY g.created_at DESC
-         LIMIT 25`
+         LIMIT 25`,
+        [teacherId]
       );
       res.json(resGames.rows);
     } catch (err: any) {
@@ -140,9 +179,10 @@ export function createApiRouter(io: Server): Router {
     }
   });
 
-  // Get current active game (WAITING or IN_PROGRESS, excluding private proctor preview rooms)
+  // Get current active game (WAITING or IN_PROGRESS, strictly isolated to current teacher)
   router.get('/games/active', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
       const db = await getDb();
       const resGame = await db.query(
         `SELECT g.id, g.code, g.title, g.status, g.created_at, g.started_at, g.finished_at,
@@ -150,10 +190,11 @@ export function createApiRouter(io: Server): Router {
                 COUNT(s.id)::int as student_count
          FROM games g
          LEFT JOIN students s ON s.game_id = g.id
-         WHERE g.status IN ('WAITING', 'IN_PROGRESS') AND g.code NOT LIKE 'PRK%'
+         WHERE g.status IN ('WAITING', 'IN_PROGRESS') AND g.code NOT LIKE 'PRK%' AND g.teacher_id = $1
          GROUP BY g.id
          ORDER BY g.created_at DESC
-         LIMIT 1`
+         LIMIT 1`,
+        [teacherId]
       );
       res.json(resGame.rows[0] || null);
     } catch (err: any) {
@@ -165,6 +206,7 @@ export function createApiRouter(io: Server): Router {
   // 1. Teacher creates game
   router.post('/games', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
+      const teacherId = (req as any).teacher?.teacherId || 1;
       const { title, durationSeconds, durationMinutes } = req.body;
       const duration = durationSeconds
         ? parseInt(durationSeconds, 10)
@@ -172,7 +214,7 @@ export function createApiRouter(io: Server): Router {
         ? parseInt(durationMinutes, 10) * 60
         : undefined;
 
-      const game = await GameService.createGame({ title, durationSeconds: duration });
+      const game = await GameService.createGame({ title, durationSeconds: duration, teacherId });
       res.status(201).json(game);
     } catch (err: any) {
       console.error('Error creating game:', err);
@@ -195,13 +237,19 @@ export function createApiRouter(io: Server): Router {
       }
 
       const db = await getDb();
-      const gameRes = await db.query('SELECT id, status, code FROM games WHERE id = $1', [gameId]);
+      const gameRes = await db.query('SELECT id, status, code, teacher_id FROM games WHERE id = $1', [gameId]);
       if (gameRes.rows.length === 0) {
         res.status(404).json({ error: 'Игра не найдена' });
         return;
       }
 
       const game = gameRes.rows[0];
+      const teacherSession = (req as any).teacher;
+      if (teacherSession && game.teacher_id && game.teacher_id !== teacherSession.teacherId && teacherSession.role !== 'COMMISSION_CHAIR') {
+        res.status(403).json({ error: 'Доступ запрещён: этот тест принадлежит другому проверяющему' });
+        return;
+      }
+
       if (game.status !== 'WAITING') {
         res.status(400).json({ error: 'Изменить время теста можно только до его запуска (в статусе ожидания)' });
         return;
@@ -311,6 +359,17 @@ export function createApiRouter(io: Server): Router {
   router.post('/games/:gameId/start', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
+      const game = await GameService.getGameById(gameId);
+      if (!game) {
+        res.status(404).json({ error: 'Игра не найдена' });
+        return;
+      }
+      const teacherSession = (req as any).teacher;
+      if (teacherSession && game.teacher_id && game.teacher_id !== teacherSession.teacherId && teacherSession.role !== 'COMMISSION_CHAIR') {
+        res.status(403).json({ error: 'Доступ запрещён: этот тест принадлежит другому проверяющему' });
+        return;
+      }
+
       const startResult = await GameService.startGame(gameId);
 
       const totalTimeSeconds = Math.max(
@@ -354,6 +413,17 @@ export function createApiRouter(io: Server): Router {
   router.post('/games/:gameId/finish', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
+      const game = await GameService.getGameById(gameId);
+      if (!game) {
+        res.status(404).json({ error: 'Игра не найдена' });
+        return;
+      }
+      const teacherSession = (req as any).teacher;
+      if (teacherSession && game.teacher_id && game.teacher_id !== teacherSession.teacherId && teacherSession.role !== 'COMMISSION_CHAIR') {
+        res.status(403).json({ error: 'Доступ запрещён: этот тест принадлежит другому проверяющему' });
+        return;
+      }
+
       const finishResult = await GameService.finishGame(gameId, 'MANUAL');
 
       // Broadcast to all students and teacher
@@ -373,6 +443,17 @@ export function createApiRouter(io: Server): Router {
   router.get('/games/:gameId/teacher', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
+      const game = await GameService.getGameById(gameId);
+      if (!game) {
+        res.status(404).json({ error: 'Игра не найдена' });
+        return;
+      }
+      const teacherSession = (req as any).teacher;
+      if (teacherSession && game.teacher_id && game.teacher_id !== teacherSession.teacherId && teacherSession.role !== 'COMMISSION_CHAIR') {
+        res.status(403).json({ error: 'Доступ запрещён: этот тест принадлежит другому проверяющему' });
+        return;
+      }
+
       const dashboard = await GameService.getTeacherDashboardData(gameId);
       if (!dashboard) {
         res.status(404).json({ error: 'Игра не найдена' });
@@ -388,6 +469,17 @@ export function createApiRouter(io: Server): Router {
   router.get('/games/:gameId/export/excel', requireTeacherAuth, async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId } = req.params;
+      const game = await GameService.getGameById(gameId);
+      if (!game) {
+        res.status(404).json({ error: 'Игра не найдена' });
+        return;
+      }
+      const teacherSession = (req as any).teacher;
+      if (teacherSession && game.teacher_id && game.teacher_id !== teacherSession.teacherId && teacherSession.role !== 'COMMISSION_CHAIR') {
+        res.status(403).json({ error: 'Доступ запрещён: этот тест принадлежит другому проверяющему' });
+        return;
+      }
+
       const dashboard = await GameService.getTeacherDashboardData(gameId);
       if (!dashboard) {
         res.status(404).json({ error: 'Игра не найдена' });
@@ -428,7 +520,7 @@ export function createApiRouter(io: Server): Router {
       const { gameId, studentId } = req.params;
       const sId = parseInt(studentId, 10);
       const state = await GameService.getStudentState(gameId, sId);
-      const questions = await QuestionService.getAllQuestionsForStudent(state.student.formId);
+      const questions = await QuestionService.getAllQuestionsForStudent(state.student.formId, (state as any).teacherId || 1);
       res.json(questions);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -443,7 +535,7 @@ export function createApiRouter(io: Server): Router {
       const qNum = parseInt(questionNumber, 10);
 
       const state = await GameService.getStudentState(gameId, sId);
-      const question = await QuestionService.getQuestionForStudent(state.student.formId, qNum);
+      const question = await QuestionService.getQuestionForStudent(state.student.formId, qNum, (state as any).teacherId || 1);
 
       if (!question) {
         res.status(404).json({ error: 'Вопрос не найден' });

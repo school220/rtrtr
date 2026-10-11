@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Building2,
   CheckCircle2,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { useLanguage } from '../context/LanguageContext.js';
@@ -20,13 +22,21 @@ interface TeacherLoginProps {
 
 export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
   const { t } = useLanguage();
+  const [tab, setTab] = useState<'login' | 'register'>('login');
+  
+  // Login fields
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Registration fields
+  const [fullName, setFullName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -46,6 +56,50 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
       onSuccess();
     } catch (err: any) {
       setError(err.message || t.authErrorInvalid);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const fn = fullName.trim();
+    const u = username.trim();
+    const p = password.trim();
+    const cp = confirmPassword.trim();
+
+    if (!fn) {
+      setError(t.authErrorFullNameRequired);
+      return;
+    }
+
+    if (!u || !p) {
+      setError(t.authErrorRequired);
+      return;
+    }
+
+    if (p.length < 6) {
+      setError(t.authErrorPasswordLength);
+      return;
+    }
+
+    if (p !== cp) {
+      setError(t.authErrorPasswordMismatch);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.teacherRegister({ fullName: fn, username: u, password: p });
+      setFullName('');
+      setUsername('');
+      setPassword('');
+      setConfirmPassword('');
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Ошибка регистрации проверяющего');
     } finally {
       setLoading(false);
     }
@@ -81,7 +135,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
         </div>
       </header>
 
-      {/* Main Login Form Area */}
+      {/* Main Login / Register Area */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md space-y-4 animate-in fade-in duration-300">
           {/* Card */}
@@ -102,6 +156,40 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
               </p>
             </div>
 
+            {/* Tab switch between Login and Register */}
+            <div className="grid grid-cols-2 border-b border-[#2c3b41] bg-[#1a2226]">
+              <button
+                type="button"
+                onClick={() => {
+                  setTab('login');
+                  setError(null);
+                }}
+                className={`py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+                  tab === 'login'
+                    ? 'bg-[#222d32] text-cyan-300 border-b-2 border-cyan-400'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#20292e]'
+                }`}
+              >
+                <LogIn className="w-4 h-4" />
+                <span>{t.authTabLogin}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab('register');
+                  setError(null);
+                }}
+                className={`py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${
+                  tab === 'register'
+                    ? 'bg-[#222d32] text-cyan-300 border-b-2 border-cyan-400'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#20292e]'
+                }`}
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>{t.authTabRegister}</span>
+              </button>
+            </div>
+
             <div className="p-6 sm:p-8 space-y-5 bg-[#222d32]">
               {/* Error Alert */}
               {error && (
@@ -111,76 +199,191 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                 </div>
               )}
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
-                    {t.authUsernameLabel}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                      <User className="w-4 h-4" />
+              {/* Login Form */}
+              {tab === 'login' && (
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authUsernameLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder={t.authUsernamePlaceholder}
+                        autoComplete="username"
+                        disabled={loading}
+                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder={t.authUsernamePlaceholder}
-                      autoComplete="username"
-                      disabled={loading}
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
-                    />
                   </div>
-                </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
-                    {t.authPasswordLabel}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                      <Lock className="w-4 h-4" />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authPasswordLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={t.authPasswordPlaceholder}
+                        autoComplete="current-password"
+                        disabled={loading}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t.authPasswordPlaceholder}
-                      autoComplete="current-password"
-                      disabled={loading}
-                      className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
-                    />
+                  </div>
+
+                  <div className="pt-2">
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200"
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 px-4 rounded-lg bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-cyan-900/20"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {loading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>{t.authChecking}</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="w-4 h-4 text-cyan-200" />
+                          <span>{t.authSubmitBtn}</span>
+                        </>
+                      )}
                     </button>
                   </div>
-                </div>
+                </form>
+              )}
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 px-4 rounded-lg bg-[#25718f] hover:bg-[#1f5f79] text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-cyan-900/20"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>{t.authChecking}</span>
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="w-4 h-4 text-cyan-200" />
-                        <span>{t.authSubmitBtn}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              {/* Registration Form */}
+              {tab === 'register' && (
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authFullNameLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder={t.authFullNamePlaceholder}
+                        autoComplete="name"
+                        disabled={loading}
+                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authUsernameLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder={t.authUsernamePlaceholder}
+                        autoComplete="username"
+                        disabled={loading}
+                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authPasswordLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={t.authPasswordPlaceholder}
+                        autoComplete="new-password"
+                        disabled={loading}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 font-mono">
+                      {t.authConfirmPasswordLabel}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder={t.authConfirmPasswordPlaceholder}
+                        autoComplete="new-password"
+                        disabled={loading}
+                        className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#1a2226] border border-[#3c4b52] font-mono text-sm text-white placeholder:text-gray-500 focus:border-[#25718f] focus:outline-none focus:ring-1 focus:ring-[#25718f] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 hover:shadow-emerald-900/20"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>{t.authCreatingAccount}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 text-emerald-200" />
+                          <span>{t.authRegisterBtn}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Security notice footer */}
               <div className="pt-3 border-t border-[#2c3b41] text-[11px] text-gray-400 space-y-1.5 font-mono">
@@ -189,7 +392,7 @@ export const TeacherLogin: React.FC<TeacherLoginProps> = ({ onSuccess }) => {
                   <span>Xavfsiz va shifrlangan proktoring protokoli</span>
                 </div>
                 <p className="text-[10px] text-gray-500 leading-normal">
-                  Ruxsatsiz kirish urinishlari qayd etiladi va IP bo'yicha cheklanadi.
+                  Har bir tekshiruvchi o'zining mustaqil variantlari va test auditoriyalariga ega bo'ladi.
                 </p>
               </div>
             </div>

@@ -423,6 +423,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 <span className="text-[11px] font-bold tracking-wider uppercase text-[#25718f] bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded font-mono">
                   {t.dashBadge}
                 </span>
+                <span className="text-[11px] font-bold tracking-wider uppercase text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono flex items-center gap-1">
+                  <span>{t.dashTeacherLabel}:</span>
+                  <span className="font-extrabold text-purple-950">{api.getTeacherInfo()?.fullName || 'Проверяющий'}</span>
+                </span>
                 <span
                   className={`text-[11px] px-2.5 py-0.5 rounded font-bold uppercase tracking-wider ${
                     isWaiting

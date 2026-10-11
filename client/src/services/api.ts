@@ -137,11 +137,35 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   // Teacher Authentication
+  teacherRegister: async (data: { fullName: string; username: string; password: string }) => {
+    const res = await request<{
+      success: boolean;
+      token: string;
+      teacherId: number;
+      username: string;
+      fullName: string;
+      role: string;
+      message: string;
+    }>('/teacher/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.token) {
+      sessionStorage.setItem(TEACHER_TOKEN_KEY, res.token);
+      sessionStorage.setItem('teacher_full_name', res.fullName);
+      sessionStorage.setItem('teacher_username', res.username);
+      sessionStorage.setItem('teacher_role', res.role);
+    }
+    return res;
+  },
+
   teacherLogin: async (credentials: { username: string; password: string }) => {
     const res = await request<{
       success: boolean;
       token: string;
+      teacherId?: number;
       username: string;
+      fullName?: string;
       role: string;
       message: string;
     }>('/teacher/login', {
@@ -150,21 +174,47 @@ export const api = {
     });
     if (res.token) {
       sessionStorage.setItem(TEACHER_TOKEN_KEY, res.token);
+      if (res.fullName) sessionStorage.setItem('teacher_full_name', res.fullName);
+      if (res.username) sessionStorage.setItem('teacher_username', res.username);
+      if (res.role) sessionStorage.setItem('teacher_role', res.role);
     }
     return res;
+  },
+
+  getTeacherInfo: () => {
+    if (typeof sessionStorage === 'undefined') return null;
+    return {
+      fullName: sessionStorage.getItem('teacher_full_name') || 'Проверяющий',
+      username: sessionStorage.getItem('teacher_username') || '',
+      role: sessionStorage.getItem('teacher_role') || 'EXAMINER',
+    };
   },
 
   verifyTeacherSession: async (): Promise<boolean> => {
     const token = sessionStorage.getItem(TEACHER_TOKEN_KEY);
     if (!token) return false;
     try {
-      const res = await request<{ valid: boolean }>('/teacher/verify', {
+      const res = await request<{
+        valid: boolean;
+        teacherId?: number;
+        username?: string;
+        fullName?: string;
+        role?: string;
+      }>('/teacher/verify', {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.valid) {
+        if (res.fullName) sessionStorage.setItem('teacher_full_name', res.fullName);
+        if (res.username) sessionStorage.setItem('teacher_username', res.username);
+        if (res.role) sessionStorage.setItem('teacher_role', res.role);
+      }
       return res.valid;
     } catch {
       sessionStorage.removeItem(TEACHER_TOKEN_KEY);
+      sessionStorage.removeItem('teacher_full_name');
+      sessionStorage.removeItem('teacher_username');
+      sessionStorage.removeItem('teacher_role');
       return false;
     }
   },
@@ -181,6 +231,9 @@ export const api = {
         // ignore
       }
       sessionStorage.removeItem(TEACHER_TOKEN_KEY);
+      sessionStorage.removeItem('teacher_full_name');
+      sessionStorage.removeItem('teacher_username');
+      sessionStorage.removeItem('teacher_role');
     }
   },
 
