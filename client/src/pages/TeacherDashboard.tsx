@@ -1108,13 +1108,26 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         {/* Suspicious Events */}
                         <td className="py-3.5 px-4">
                           {susp > 0 ? (
-                            <span
-                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-mono font-bold shadow-2xs"
-                              title={`Нарушения: ${susp}`}
-                            >
-                              <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                              <span>{susp} инцидент(ов)</span>
-                            </span>
+                            <div className="flex flex-col gap-1 items-start">
+                              <span
+                                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-mono font-bold shadow-2xs"
+                                title={`Нарушения: ${susp}`}
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span>{susp} инцидент(ов)</span>
+                              </span>
+                              {(st.securityEvents?.screenshotAttempts || 0) > 0 && (
+                                <span
+                                  className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg border font-mono font-bold ${
+                                    (st.securityEvents?.screenshotAttempts || 0) >= 5
+                                      ? 'bg-red-100 text-red-800 border-red-300 animate-pulse'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                  }`}
+                                >
+                                  📸 {st.securityEvents?.screenshotAttempts}/5 {t.dashScreenshotsCount || 'скриншотов'}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl text-emerald-700 bg-emerald-50 border border-emerald-200 font-mono shadow-2xs">
                               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

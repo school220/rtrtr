@@ -209,7 +209,7 @@ export function setupSocketHandlers(io: Server) {
         .catch(() => {});
     });
 
-    // 3. Security event from student (tab switch, fullscreen exit, etc.)
+    // 3. Security event from student (tab switch, fullscreen exit, screenshot, etc.)
     socket.on('student:security_event', async (data: {
       gameId: string;
       studentId: number;
@@ -219,6 +219,38 @@ export function setupSocketHandlers(io: Server) {
       if (!data.gameId || !data.studentId) return;
 
       await EventService.logEvent(data.gameId, data.studentId, data.eventType, data.metadata || {});
+
+      // Auto-disqualification: 5 screenshot attempts rule
+      if (data.eventType === 'SCREENSHOT_ATTEMPT') {
+        try {
+          const db = await getDb();
+          const countRes = await db.query(
+            `SELECT COUNT(*) as count FROM game_events 
+             WHERE game_id = $1 AND student_id = $2 AND event_type = 'SCREENSHOT_ATTEMPT'`,
+            [data.gameId, data.studentId]
+          );
+          const screenshotCount = parseInt(countRes.rows[0]?.count || '0', 10);
+          if (screenshotCount >= 5) {
+            const reason = 'Превышен лимит создания снимков экрана (5 из 5). Автоматическая дисквалификация системой прокторинга.';
+            const result = await GameService.disqualifyStudent(data.gameId, data.studentId, {
+              disqualifiedBy: 'PROCTOR',
+              reason,
+            });
+
+            // Immediately notify student to lock out and show disqualification result
+            io.to(`game:${data.gameId}:student:${data.studentId}`).emit('student:disqualified', {
+              disqualifiedBy: 'PROCTOR',
+              reason: result.disqualificationReason,
+            });
+
+            console.log(
+              `[SECURITY LOCKDOWN] 🚨 Ученик #${data.studentId} автоматически дисквалифицирован за 5 скриншотов в комнате [${data.gameId}]`
+            );
+          }
+        } catch (err) {
+          console.error('Error processing auto-disqualification on screenshot attempt:', err);
+        }
+      }
 
       // Notify teacher dashboard immediately
       io.to(`game:${data.gameId}:teacher`).emit('teacher:security_alert', {

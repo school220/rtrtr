@@ -6,6 +6,8 @@ interface SecurityLockdownModalProps {
   isFullscreen: boolean;
   isWindowBlurred: boolean;
   isScreenshotBlocked: boolean;
+  screenshotAttempts?: number;
+  maxScreenshotAttempts?: number;
   onRequestFullscreen: () => void;
   onFocusWindow: () => void;
 }
@@ -14,6 +16,8 @@ export const SecurityLockdownModal: React.FC<SecurityLockdownModalProps> = ({
   isFullscreen,
   isWindowBlurred,
   isScreenshotBlocked,
+  screenshotAttempts = 1,
+  maxScreenshotAttempts = 5,
   onRequestFullscreen,
   onFocusWindow,
 }) => {
@@ -21,21 +25,46 @@ export const SecurityLockdownModal: React.FC<SecurityLockdownModalProps> = ({
 
   // 1. Screenshot intercept overlay
   if (isScreenshotBlocked) {
+    const attempts = Math.min(screenshotAttempts, maxScreenshotAttempts);
     return (
       <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-black text-white select-none animate-in fade-in duration-100">
-        <div className="w-20 h-20 rounded-2xl bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center mb-6 text-rose-500 animate-pulse">
+        <div className="w-20 h-20 rounded-2xl bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center mb-4 text-rose-500 animate-pulse">
           <CameraOff className="w-10 h-10" />
         </div>
         <div className="max-w-md text-center space-y-3">
-          <span className="px-3 py-1 rounded bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-bold tracking-wider uppercase font-mono">
-            {t.lockScreenshotBadge}
-          </span>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <span className="px-3 py-1 rounded bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-bold tracking-wider uppercase font-mono">
+              {t.lockScreenshotBadge}
+            </span>
+            <span className="px-3 py-1 rounded bg-red-600/30 border border-red-500 text-red-300 text-xs font-bold tracking-wider uppercase font-mono">
+              {t.lockScreenshotAttemptPrefix} {attempts} / {maxScreenshotAttempts}
+            </span>
+          </div>
+
+          {/* Visual strike indicators (5 dots) */}
+          <div className="flex items-center justify-center gap-2 py-1">
+            {Array.from({ length: maxScreenshotAttempts }).map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  idx < attempts
+                    ? 'w-8 bg-rose-500 shadow-lg shadow-rose-500/60 ring-2 ring-rose-400'
+                    : 'w-4 bg-zinc-800 border border-zinc-700'
+                }`}
+              />
+            ))}
+          </div>
+
           <h2 className="text-2xl font-black text-white uppercase tracking-tight">
             {t.lockScreenshotTitle}
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed font-mono">
             {t.lockScreenshotDesc}
           </p>
+
+          <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-600/50 text-rose-300 text-xs font-bold font-mono">
+            ⚠️ {t.lockScreenshotLimitWarning}
+          </div>
         </div>
       </div>
     );

@@ -814,13 +814,56 @@ export function createApiRouter(io: Server): Router {
 
       await EventService.logEvent(gameId, sId, eventType, metadata || {});
 
+      let isDisqualified = false;
+      let disqualificationReason = '';
+
+      if (eventType === 'SCREENSHOT_ATTEMPT') {
+        try {
+          const db = await getDb();
+          const countRes = await db.query(
+            `SELECT COUNT(*) as count FROM game_events 
+             WHERE game_id = $1 AND student_id = $2 AND event_type = 'SCREENSHOT_ATTEMPT'`,
+            [gameId, sId]
+          );
+          const screenshotCount = parseInt(countRes.rows[0]?.count || '0', 10);
+          if (screenshotCount >= 5) {
+            const reason = 'Превышен лимит создания снимков экрана (5 из 5). Автоматическая дисквалификация системой прокторинга.';
+            const result = await GameService.disqualifyStudent(gameId, sId, {
+              disqualifiedBy: 'PROCTOR',
+              reason,
+            });
+
+            isDisqualified = true;
+            disqualificationReason = result.disqualificationReason;
+
+            io.to(`game:${gameId}:student:${sId}`).emit('student:disqualified', {
+              disqualifiedBy: 'PROCTOR',
+              reason: result.disqualificationReason,
+            });
+
+            try {
+              const dashboard = await GameService.getTeacherDashboardData(gameId);
+              io.to(`game:${gameId}:teacher`).emit('teacher:dashboard_update', dashboard);
+            } catch (dErr) {
+              // ignore
+            }
+
+            console.log(
+              `[SECURITY LOCKDOWN via HTTP] 🚨 Ученик #${sId} автоматически дисквалифицирован за 5 скриншотов в комнате [${gameId}]`
+            );
+          }
+        } catch (disqErr) {
+          console.error('Error during HTTP screenshot auto-disqualification check:', disqErr);
+        }
+      }
+
       io.to(`game:${gameId}:teacher`).emit('teacher:security_alert', {
         studentId: sId,
         eventType,
         timestamp: new Date().toISOString(),
       });
 
-      res.json({ success: true });
+      res.json({ success: true, disqualified: isDisqualified, reason: disqualificationReason || undefined });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

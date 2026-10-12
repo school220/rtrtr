@@ -40,7 +40,7 @@ export class EventService {
   /**
    * Retrieves security incident counts per student in a game
    */
-  public static async getStudentSecuritySummary(gameId: string): Promise<Record<number, { pageHidden: number; fullscreenExit: number; disconnected: number; totalSuspicious: number }>> {
+  public static async getStudentSecuritySummary(gameId: string): Promise<Record<number, { pageHidden: number; fullscreenExit: number; disconnected: number; totalSuspicious: number; screenshotAttempts: number }>> {
     const db = await getDb();
     const res = await db.query(
       `SELECT student_id, event_type, COUNT(*) as count
@@ -50,12 +50,12 @@ export class EventService {
       [gameId]
     );
 
-    const summary: Record<number, { pageHidden: number; fullscreenExit: number; disconnected: number; totalSuspicious: number }> = {};
+    const summary: Record<number, { pageHidden: number; fullscreenExit: number; disconnected: number; totalSuspicious: number; screenshotAttempts: number }> = {};
 
     for (const row of res.rows) {
       const sid = parseInt(row.student_id, 10);
       if (!summary[sid]) {
-        summary[sid] = { pageHidden: 0, fullscreenExit: 0, disconnected: 0, totalSuspicious: 0 };
+        summary[sid] = { pageHidden: 0, fullscreenExit: 0, disconnected: 0, totalSuspicious: 0, screenshotAttempts: 0 };
       }
       const cnt = parseInt(row.count, 10);
       if (row.event_type === 'PAGE_HIDDEN' || row.event_type === 'WINDOW_BLUR') {
@@ -64,7 +64,10 @@ export class EventService {
       } else if (row.event_type === 'FULLSCREEN_EXIT') {
         summary[sid].fullscreenExit += cnt;
         summary[sid].totalSuspicious += cnt;
-      } else if (row.event_type === 'SCREENSHOT_ATTEMPT' || row.event_type === 'CLIPBOARD_VIOLATION') {
+      } else if (row.event_type === 'SCREENSHOT_ATTEMPT') {
+        summary[sid].screenshotAttempts += cnt;
+        summary[sid].totalSuspicious += cnt;
+      } else if (row.event_type === 'CLIPBOARD_VIOLATION') {
         summary[sid].pageHidden += cnt;
         summary[sid].totalSuspicious += cnt;
       } else if (row.event_type === 'STUDENT_DISCONNECTED') {

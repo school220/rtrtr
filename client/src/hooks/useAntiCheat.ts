@@ -7,6 +7,7 @@ interface AntiCheatOptions {
   socket: Socket | null;
   isActive: boolean;
   onSecurityIncident?: (type: string) => void;
+  onDisqualified?: (reason: string) => void;
 }
 
 export function useAntiCheat({
@@ -15,10 +16,18 @@ export function useAntiCheat({
   socket,
   isActive,
   onSecurityIncident,
+  onDisqualified,
 }: AntiCheatOptions) {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(true);
   const [isWindowBlurred, setIsWindowBlurred] = useState<boolean>(false);
   const [isScreenshotBlocked, setIsScreenshotBlocked] = useState<boolean>(false);
+  const [screenshotAttempts, setScreenshotAttempts] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const saved = sessionStorage.getItem(`screenshots_${gameId}_${studentId}`);
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
 
   const lastVisibilityRef = useRef<number>(0);
   const lastFullscreenRef = useRef<number>(0);
@@ -61,6 +70,51 @@ export function useAntiCheat({
       }
     },
     [gameId, studentId, socket, onSecurityIncident]
+  );
+
+  const handleScreenshotAttempt = useCallback(
+    (trigger: string) => {
+      setIsScreenshotBlocked(true);
+
+      // Overwrite system clipboard immediately with warning
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText('ВНИМАНИЕ: Снимок экрана заблокирован системой экзаменационного прокторинга.')
+          .catch(() => {});
+      }
+
+      let current = 0;
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        current = parseInt(sessionStorage.getItem(`screenshots_${gameId}_${studentId}`) || '0', 10);
+      }
+      const updated = current + 1;
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem(`screenshots_${gameId}_${studentId}`, String(updated));
+      }
+      setScreenshotAttempts(updated);
+
+      reportEvent('SCREENSHOT_ATTEMPT', {
+        trigger,
+        attempt: updated,
+        maxAttempts: 5,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (screenshotTimeoutRef.current) {
+        clearTimeout(screenshotTimeoutRef.current);
+      }
+      screenshotTimeoutRef.current = setTimeout(() => {
+        setIsScreenshotBlocked(false);
+      }, 2500);
+
+      if (updated >= 5) {
+        const reason = 'Превышен лимит создания снимков экрана (5 из 5). Автоматическая дисквалификация системой прокторинга.';
+        if (onDisqualified) {
+          onDisqualified(reason);
+        }
+      }
+    },
+    [gameId, studentId, reportEvent, onDisqualified]
   );
 
   // Request fullscreen programmatically
@@ -124,29 +178,35 @@ export function useAntiCheat({
       return false;
     };
 
-    // 3. Keystroke Interception (PrintScreen, DevTools, Ctrl+C, Ctrl+P, etc.)
+    // 3. Keystroke Interception (PrintScreen, Win+Shift+S, Mac Cmd+Shift+3/4/5, DevTools, Ctrl+C, Ctrl+P, etc.)
     const handleKeyDown = (e: KeyboardEvent) => {
       // PrintScreen interception
       if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
         e.preventDefault();
-        setIsScreenshotBlocked(true);
+        e.stopPropagation();
+        handleScreenshotAttempt('PrintScreen');
+        return false;
+      }
 
-        // Clear system clipboard
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard
-            .writeText('ВНИМАНИЕ: Снимок экрана заблокирован системой экзаменационного прокторинга.')
-            .catch(() => {});
-        }
+      // Screenshot combinations:
+      // 1. Win+Shift+S or Cmd+Shift+S (Windows Snipping Tool / Mac Grab)
+      // 2. Ctrl+Shift+S (Edge screen capture / browser capture)
+      // 3. Mac screen captures: Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5
+      // 4. Third-party screen tools: Ctrl+Alt+S, Ctrl+Alt+A
+      const isShift = e.shiftKey;
+      const isMeta = e.metaKey;
+      const isCtrl = e.ctrlKey;
+      const isAlt = e.altKey;
+      const lowerKey = e.key.toLowerCase();
 
-        reportEvent('SCREENSHOT_ATTEMPT', { key: 'PrintScreen' });
-
-        if (screenshotTimeoutRef.current) {
-          clearTimeout(screenshotTimeoutRef.current);
-        }
-        screenshotTimeoutRef.current = setTimeout(() => {
-          setIsScreenshotBlocked(false);
-        }, 2500);
-
+      if (
+        (isShift && (isMeta || isCtrl) && (lowerKey === 's' || e.code === 'KeyS')) ||
+        (isMeta && isShift && ['3', '4', '5'].includes(e.key)) ||
+        (isCtrl && isAlt && (lowerKey === 's' || lowerKey === 'a' || lowerKey === 'p'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleScreenshotAttempt(isMeta ? 'Meta+Shift+S' : isCtrl ? 'Ctrl+Shift+S' : 'ScreenshotHotkey');
         return false;
       }
 
@@ -297,12 +357,13 @@ export function useAntiCheat({
         clearTimeout(screenshotTimeoutRef.current);
       }
     };
-  }, [isActive, gameId, studentId, reportEvent]);
+  }, [isActive, gameId, studentId, reportEvent, handleScreenshotAttempt]);
 
   return {
     isFullscreen,
     isWindowBlurred,
     isScreenshotBlocked,
+    screenshotAttempts,
     requestFullscreen,
     clearBlur,
   };

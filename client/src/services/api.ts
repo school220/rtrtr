@@ -110,6 +110,10 @@ export interface TeacherDashboardResponse {
       pageHidden: number;
       fullscreenExit: number;
       disconnected: number;
+      screenshotAttempts?: number;
+      windowBlurs?: number;
+      tabSwitches?: number;
+      clipboardViolations?: number;
       totalSuspicious: number;
     };
     disqualifiedBy?: string;
