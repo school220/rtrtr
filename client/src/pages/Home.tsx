@@ -68,16 +68,20 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
             </span>
           </div>
 
-          {/* User profile avatar */}
-          <div className="flex items-center gap-2 pl-2 border-l border-white/20">
+          {/* User profile avatar / Teacher entry button */}
+          <button
+            onClick={() => onSelectRole('teacher')}
+            className="flex items-center gap-2 pl-2 border-l border-white/20 hover:opacity-80 transition-opacity text-left cursor-pointer"
+            title="Войти в панель учителя (/teacher)"
+          >
             <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <User className="w-4 h-4" />
             </div>
-            <div className="hidden sm:block text-left leading-tight">
-              <div className="font-bold text-[11px] text-white">{t.userRole}</div>
-              <div className="text-[10px] text-cyan-100 font-mono">{t.activeYear}</div>
+            <div className="hidden sm:block leading-tight">
+              <div className="font-bold text-[11px] text-white">Учитель / Проктор</div>
+              <div className="text-[10px] text-cyan-100 font-mono">Вход в панель →</div>
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
@@ -115,6 +119,14 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
             >
               <FileText className="w-4 h-4 text-[#00c0ef]" />
               <span>{t.menuTakeExam}</span>
+            </button>
+
+            <button
+              onClick={() => onSelectRole('teacher')}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-cyan-200 hover:bg-[#1e282c] hover:text-white transition-colors text-left font-semibold"
+            >
+              <GraduationCap className="w-4 h-4 text-cyan-300" />
+              <span>Панель учителя</span>
             </button>
 
             <div className="text-[10px] uppercase font-bold text-slate-500 px-3 py-2 tracking-wider mt-2">
