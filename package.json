@@ -17,6 +17,7 @@
     "test:load": "npm run test:load --workspace=server",
     "test:e2e": "npm run test:e2e --workspace=server",
     "tunnel": "npx localtunnel --port 3000",
+    "tunnel:cloudflare": "cloudflared tunnel --url http://localhost:3000",
     "tunnel:pinggy": "ssh -p 443 -R0:localhost:3000 a.pinggy.io"
   },
   "devDependencies": {
