@@ -103,15 +103,15 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono font-bold text-sm tracking-wider select-none transition-colors ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono font-bold text-xs sm:text-sm tracking-wider select-none shadow-xs border transition-colors ${
         isCritical
-          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse'
+          ? 'bg-rose-600 text-white border-rose-700 animate-pulse shadow-rose-600/30'
           : isWarning
-          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-          : 'bg-slate-800 text-slate-200 border border-slate-700'
+          ? 'bg-amber-100 text-amber-950 border-amber-300 shadow-amber-500/10'
+          : 'bg-white text-[#1f5f79] border-gray-200'
       } ${className}`}
     >
-      <Clock className={`w-4 h-4 ${isCritical ? 'text-rose-400 animate-spin' : isWarning ? 'text-amber-400' : 'text-slate-400'}`} />
+      <Clock className={`w-3.5 h-3.5 shrink-0 ${isCritical ? 'text-white animate-spin' : isWarning ? 'text-amber-700' : 'text-[#25718f]'}`} />
       <span>{formatted}</span>
     </div>
   );

@@ -6,7 +6,6 @@ import {
   LogOut,
   Maximize2,
   GraduationCap,
-  Clock,
   Send,
   Edit3,
   Eye,
@@ -114,7 +113,7 @@ const MultipleChoiceCard = React.memo<MultipleChoiceCardProps>(
                 >
                   {opt.label}
                 </div>
-                <div className="text-base sm:text-lg font-semibold flex-1 py-0.5 overflow-x-auto no-scrollbar">
+                <div className="text-base sm:text-lg font-semibold flex-1 py-0.5 overflow-x-auto no-scrollbar text-gray-900">
                   <MathRenderer content={opt.text} />
                 </div>
               </button>
@@ -265,7 +264,7 @@ const ShortAnswerCard = React.memo<ShortAnswerCardProps>(
                 }
               }}
               placeholder={t.quizShortAnswerPlaceholder}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 font-mono text-lg font-bold text-gray-900 placeholder:text-gray-400 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white transition-all"
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 font-mono text-lg font-bold text-gray-900 placeholder:text-gray-500 focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white transition-all"
               autoComplete="off"
             />
             <button
@@ -704,22 +703,19 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
               {/* Mobile Right Controls: Timer, Language & Finish */}
               <div className="flex sm:hidden items-center gap-1.5">
                 {state.endsAt && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-white text-[#25718f] rounded shadow-sm font-bold text-xs font-mono">
-                    <Clock className="w-3 h-3 text-[#25718f] shrink-0" />
-                    <TimerDisplay
-                      endsAt={state.endsAt}
-                      serverTime={state.serverTime}
-                      onExpire={() => loadState()}
-                    />
-                  </div>
+                  <TimerDisplay
+                    endsAt={state.endsAt}
+                    serverTime={state.serverTime}
+                    onExpire={() => loadState()}
+                  />
                 )}
                 <LanguageSelector />
                 <button
                   onClick={() => setShowFinishModal(true)}
-                  className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-mono transition-colors flex items-center gap-1 shadow-sm shrink-0"
+                  className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-mono transition-colors flex items-center gap-1 shadow-sm shrink-0"
                   title={t.quizSubmitExamBtn}
                 >
-                  <LogOut className="w-3 h-3" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -743,19 +739,16 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
               {/* Desktop Timer, Language selector & Finish button */}
               <div className="hidden sm:flex items-center gap-2">
                 {state.endsAt && (
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-white text-[#25718f] rounded shadow-sm font-bold text-xs">
-                    <Clock className="w-3.5 h-3.5 text-[#25718f] shrink-0" />
-                    <TimerDisplay
-                      endsAt={state.endsAt}
-                      serverTime={state.serverTime}
-                      onExpire={() => loadState()}
-                    />
-                  </div>
+                  <TimerDisplay
+                    endsAt={state.endsAt}
+                    serverTime={state.serverTime}
+                    onExpire={() => loadState()}
+                  />
                 )}
                 <LanguageSelector />
                 <button
                   onClick={() => setShowFinishModal(true)}
-                  className="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-mono transition-colors flex items-center gap-1 shadow-sm shrink-0"
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold font-mono transition-colors flex items-center gap-1 shadow-sm shrink-0"
                   title={t.quizSubmitExamBtn}
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -808,7 +801,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                           onClick={() => scrollToQuestion(q.questionNumber)}
                           className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                             isSaving
-                              ? 'bg-amber-400 text-white animate-pulse'
+                              ? 'bg-amber-400 text-amber-950 font-black border border-amber-500 animate-pulse'
                               : isAnswered
                               ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                               : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'
@@ -837,7 +830,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                           onClick={() => scrollToQuestion(q.questionNumber)}
                           className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                             isSaving
-                              ? 'bg-amber-400 text-white animate-pulse'
+                              ? 'bg-amber-400 text-amber-950 font-black border border-amber-500 animate-pulse'
                               : isAnswered
                               ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                               : 'bg-purple-50 border border-purple-200 text-purple-800 hover:bg-purple-100'
@@ -865,7 +858,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
                         onClick={() => scrollToQuestion(q.questionNumber)}
                         className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-mono font-bold flex items-center justify-center shrink-0 transition-transform active:scale-90 hover:scale-105 ${
                           isSaving
-                            ? 'bg-amber-400 text-white animate-pulse'
+                            ? 'bg-amber-400 text-amber-950 font-black border border-amber-500 animate-pulse'
                             : isAnswered
                             ? 'bg-[#00a65a] text-white shadow-xs hover:bg-emerald-700'
                             : 'bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200'

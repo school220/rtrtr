@@ -51,6 +51,7 @@ input, textarea {
 }
 
 .katex {
+  color: #111827 !important;
   font-size: 1.18em !important;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
@@ -66,6 +67,7 @@ input, textarea {
 
 .katex .mfrac .frac-line {
   border-bottom-width: 0.055em !important;
+  border-bottom-color: #111827 !important;
 }
 
 /* Clear alignment and spacing for square roots / radicals */

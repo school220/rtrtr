@@ -193,7 +193,7 @@ function getCachedKatex(cleanLatex: string, isBlock: boolean): string {
     katexHtmlCache.set(cacheKey, rendered);
     return rendered;
   } catch {
-    return `<span class="text-rose-400 font-mono">${cleanLatex}</span>`;
+    return `<span class="text-rose-700 font-mono font-bold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">${cleanLatex}</span>`;
   }
 }
 

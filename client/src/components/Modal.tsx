@@ -47,11 +47,11 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/30 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md liquid-glass border border-white/90 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transition-all transform animate-in slide-in-from-bottom duration-250 select-none text-slate-800"
+        className="w-full sm:max-w-md bg-white border border-slate-200 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transition-all transform animate-in slide-in-from-bottom duration-250 select-none text-slate-800"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
