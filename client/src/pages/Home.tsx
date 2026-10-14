@@ -43,7 +43,7 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded hover:bg-[#1f5f79] text-white/90 hover:text-white transition-colors"
-            title="Menyuni ochish/yopish"
+            title={t.toggleMenuTitle || "Menyuni ochish/yopish"}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -68,20 +68,16 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
             </span>
           </div>
 
-          {/* User profile avatar / Teacher entry button */}
-          <button
-            onClick={() => onSelectRole('teacher')}
-            className="flex items-center gap-2 pl-2 border-l border-white/20 hover:opacity-80 transition-opacity text-left cursor-pointer"
-            title="Войти в панель учителя (/teacher)"
-          >
+          {/* Student Profile Avatar */}
+          <div className="flex items-center gap-2 pl-2 border-l border-white/20">
             <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <User className="w-4 h-4" />
             </div>
-            <div className="hidden sm:block leading-tight">
-              <div className="font-bold text-[11px] text-white">Учитель / Проктор</div>
-              <div className="text-[10px] text-cyan-100 font-mono">Вход в панель →</div>
+            <div className="hidden sm:block text-left leading-tight">
+              <div className="font-bold text-[11px] text-white">{t.userRole}</div>
+              <div className="text-[10px] text-cyan-100 font-mono">{t.activeYear}</div>
             </div>
-          </button>
+          </div>
         </div>
       </header>
 
@@ -99,7 +95,7 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
               H
             </div>
             <div className="leading-tight">
-              <div className="text-white font-bold text-[11px]">HEMIS Tizimi</div>
+              <div className="text-white font-bold text-[11px]">{t.systemTitleShort || "HEMIS Tizimi"}</div>
               <div className="text-[10px] text-emerald-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>{t.onlineStatus}</span>
@@ -119,14 +115,6 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
             >
               <FileText className="w-4 h-4 text-[#00c0ef]" />
               <span>{t.menuTakeExam}</span>
-            </button>
-
-            <button
-              onClick={() => onSelectRole('teacher')}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-cyan-200 hover:bg-[#1e282c] hover:text-white transition-colors text-left font-semibold"
-            >
-              <GraduationCap className="w-4 h-4 text-cyan-300" />
-              <span>Панель учителя</span>
             </button>
 
             <div className="text-[10px] uppercase font-bold text-slate-500 px-3 py-2 tracking-wider mt-2">
@@ -160,7 +148,7 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
               <span className="text-gray-800 font-bold">{t.breadcrumbsExam}</span>
             </div>
             <div className="hidden sm:block text-[11px] text-gray-500">
-              HEMIS v2.4 • Oliy ta'lim jarayonlarini boshqarish axborot tizimi
+              {t.systemVersionSubtitle || "HEMIS v2.4 • Oliy ta'lim jarayonlarini boshqarish axborot tizimi"}
             </div>
           </div>
 
@@ -226,17 +214,17 @@ export const Home: React.FC<HomeProps> = ({ onSelectRole }) => {
                     <div>
                       <div className="flex items-center justify-center sm:justify-start gap-2">
                         <span className="text-[11px] font-mono uppercase tracking-widest text-[#25718f] font-bold bg-cyan-100/70 px-2.5 py-0.5 rounded">
-                          Yakuniy Davlat Nazorati
+                          {t.finalControlBadge || "YAKUNIY DAVLAT NAZORATI"}
                         </span>
                         <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded">
-                          Faol sinov
+                          {t.activeTestBadge || "FAOL SINOV"}
                         </span>
                       </div>
                       <h3 className="font-black text-lg sm:text-xl text-gray-800 uppercase tracking-tight mt-1.5">
                         {t.studentCardTitle}
                       </h3>
                       <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl leading-relaxed">
-                        {t.studentCardDesc}. Sinov xonasi PIN-kodini kiriting, avtomatik tartibda shaxsiy variantingizni oling va imtihon topshiring.
+                        {t.studentCardDesc}. {t.studentCardFullDesc}
                       </p>
                     </div>
                   </div>
