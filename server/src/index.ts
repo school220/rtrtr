@@ -18,8 +18,16 @@ import {
   requireTeacherAuth,
 } from './middleware/security.middleware.js';
 
+import compression from 'compression';
+
 const app = express();
 const server = http.createServer(app);
+
+// Enable high-performance HTTP gzip compression for static assets and API payloads
+app.use(compression({
+  threshold: 1024,
+  level: 6,
+}));
 
 // Hide server fingerprint
 app.disable('x-powered-by');
@@ -57,7 +65,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve frontend build in production if present
+// Serve frontend build in production if present with ultra-fast caching headers
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -71,7 +79,18 @@ const clientDist = candidateDistPaths.find((p) => fs.existsSync(p));
 
 if (clientDist) {
   console.log(`📦 Serving static client build from: ${clientDist}`);
-  app.use(express.static(clientDist));
+  app.use(
+    express.static(clientDist, {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        // HTML entrypoint should not be cached indefinitely to allow instantaneous app updates
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+      },
+    })
+  );
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') {
       return next();

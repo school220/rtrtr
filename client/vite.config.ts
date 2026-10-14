@@ -17,5 +17,18 @@ export default defineConfig({
         ws: true
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-katex': ['katex'],
+          'vendor-socket': ['socket.io-client'],
+          'vendor-icons': ['lucide-react']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   }
 });
